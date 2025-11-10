@@ -12,6 +12,21 @@ install R
 
 install GNU parallel
 
+### Required R Packages
+
+The following R libraries must be installed:
+
+install.packages(c("squash", "xlsx", "tidyverse", "ggplot2", 
+                   "openxlsx", "reshape2", "dplyr", "data.table", 
+                   "scales", "tools"))
+
+
+For edgeR and limma, install from Bioconductor:
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("edgeR", "limma"))
+
 ### Dowload Barracoda-2.0 
 git clone git@github.com:SRHgroup/Barracoda-2.0.git
 
