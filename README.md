@@ -3,9 +3,13 @@ This repository contains Barracoda-2.0 a tool for analysing DNA barcode sequenci
 
 ### Program dependencies
 install perl 
+
 install python 
+
 install bowtie2 
+
 install R 
+
 install GNU parallel
 
 ### Dowload Barracoda-2.0 
