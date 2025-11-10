@@ -244,19 +244,14 @@ for (i in names(exp_map)) {
 	  
 	  # Assign again, as I change it during this loop..!
 	  my_samples <- exp_map[[i]]
-#	print("my_samples")  
-#	print(my_samples)
+
   	# Which AB oligos used in this experiment?	
   	peps <- rownames(anno)
   	
-#	print("peps")
-#	print(peps)
-#	print("x")
-#	print(x)	
+
   	###     TURN INTO MATRIX  (only specified barcodes and samples)   ###
   	mat <- readCountMatrix(x, peps, my_samples, c("Barcode", "sample"))
-#  	print("mat")
-#	print(mat)
+
   	###    CLONALITY REDUCTION   ###
   	matUniq <- clonReducedMatrix(x, peps, my_samples, c("Barcode", "sample"))
   	
