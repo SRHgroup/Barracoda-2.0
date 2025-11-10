@@ -149,7 +149,7 @@ exec >> $LogFile
 #####################################################################
 
 # To the terminal
-echo "The intermediate files and results can be found on TUBA: ${jobid_dir}" >&3
+echo "The intermediate files and results can be found in: ${jobid_dir}" >&3
 
 # Welcome message (to log file)
 echo -e $'\n\n                     \n B A R R A C O D A \n                     '
