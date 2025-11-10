@@ -796,7 +796,9 @@ plotReadsPerSample <- function(tab, sid) {
   # key_numbers <- as.numeric(sub(".*_(\\d+)$", "\\1", df$Key))
   df$Key <- sub(".*_(\\d+)$", "\\1", df$Key)
   df$Key <- factor(df$Key, levels = unique(df$Key[order(as.numeric(df$Key))]))
-  
+
+  df$Number.of.reads[is.na(df$Number.of.reads)] <- 0
+	
   # ensure experiment is a factor
   df$Experiment <- factor(df$Experiment)
   
