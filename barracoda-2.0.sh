@@ -1,26 +1,26 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# 2022-01-19
 # Maintained by Eva Kjær and Kamilla K. Munk
 # Based on program by Andrea Marquard 2015-03-20
 
 #####################################################################
-# Define paths to R
-#R="/home/local/tuba-nobackup/shared/R/R-3.2.0/bin/R"
-R="/opt/R-4.3.1/bin/R"
+
+# Define paths to R and python
+R="/usr/local/bin/R"
+Python="/usr/local/bin/python"
+
 # Define paths to bowtie tools
-bowtie2="/home/local/tuba-nobackup/shared/bin/bowtie2-align"
-bowtie2Build="/home/local/tuba-nobackup/shared/bin/bowtie2-build"
+bowtie2="/usr/local/bin/bowtie2"
+bowtie2Build="/usr/local/bin/bowtie2-build"
 
 # Define path to barracoda scripts
-barracoda_script_dir="/home/local/barracoda/tools/barracoda-2.0/scripts"
+barracoda_script_dir="/home/local/Barracoda-2.0/scripts"
 
-# Default storage dir
-default_storage_dir="/home/local/barracoda/archive"
-
+# Define path to storage dir
+default_storage_dir="/home/local/Barracoda-2.0/archive"
 
 #####################################################################
-# Help message <3
+# Help message 
 help() {
 	echo
 	echo
@@ -57,9 +57,10 @@ help() {
 	echo "					- Intermediate directory in which intermediate file is stored"
 	echo " 					- Output directory in which user (web) output is stored"
 	echo "  -o   Optional path that output directory is copied to (e.g. path to web server)"
-        echo "  -c   Sum counts for duplicated sampes. Can be TRUE or FALSE (Default:FALSE)" # NEW     
+    echo "  -c   Sum counts for duplicated sampes. Can be TRUE or FALSE (Default:FALSE)" 
+	echo "  -n   Input is Nanopore data (Default:Off)" 	
 	echo "  -k   Keep all intermediate files (Default:Off)"           
-        echo "  -w   Webserver mode (Default:Off)"  
+    echo "  -w   Webserver mode (Default:Off)"  
 	echo "  -h   Print this help information."
 	echo 
 	echo
@@ -69,15 +70,15 @@ help() {
 # Define variables based on arguments
 [ $# -eq 0 ] && help
 # Add ":" after characters that needs arguments (not k and h)
-sum_of_counts="FALSE" # NEW Used when dealing with duplicated sampes
+sum_of_counts="FALSE" # Used when dealing with duplicated sampes
+is_nanopore=0 # Used when input is from Nanopore
 
-while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:wkh" arg; do # NEW
+while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:wnkh" arg; do 
   case $arg in
 	  # REQUIRED ARGUMENTS:
 	  f) seq_data_fastq=${OPTARG} ;; # Could be .fasta
 	  m) sample_id_table_file=${OPTARG} ;; # Could be .txt
 		a) barcode_annotations_xlsx=${OPTARG} ;; 
-
 		A) sample_id_tags_fasta=${OPTARG} ;; 
 		B) a_forward_primer_seq=${OPTARG} ;; 
 		C) a_end_n_seq_length=${OPTARG} ;; 
@@ -91,7 +92,8 @@ while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:wkh" arg; do # NEW
     p) barcode_plate_setup_xlsx=${OPTARG} ;; 
 		s) storage_dir=${OPTARG} ;;
 		o) extra_output_dir=${OPTARG} ;; 
-                c) sum_of_counts=${OPTARG} ;; # NEW
+                c) sum_of_counts=${OPTARG} ;; 
+		n) is_nanopore=1 ;; 
 		w) web_mode=1 ;;
 		k) keep_all=1 ;;
     h) help; exit 0 ;;
@@ -104,6 +106,9 @@ done
 
 # Check if paths to R exists
 if [ ! -f "$R" ]; then echo "$R does not exists."; fi
+
+# Path to Python
+if [ ! -f "$Python" ]; then echo "$Python does not exists."; fi
 
 # Check if paths to bowtie tools exist
 if [ ! -f "$bowtie2" ]; then echo "$bowtie2 does not exists."; fi
@@ -158,7 +163,7 @@ Header() {
 # show warnings and errors function 
 ShowErrors() {
    warnmsg=`grep -h WARNING $log_dir/*.log $LogFile` # -h hide filename path
-   errormsg=`grep -h ERROR $log_dir/*.log $LogFile`
+   errormsg=`grep -hi "^ERROR" $log_dir/*.log $LogFile` # -i for case-insensitive
    msg="${warnmsg}${errormsg}"
    if [[ $msg != "" ]] ; then
       echo "<h2>Warnings and Errors</h2>" >&3
@@ -169,7 +174,7 @@ ShowErrors() {
 }
 
 ExitIfErrors() {
-    errormsg=`grep -h ERROR $1` # -h hide filename path
+    errormsg=`grep -hi "^ERROR" $1` # -h hide filename path, -i for case-insensitive
     if [[ $errormsg != "" ]] ; then
        echo "<h2>Warnings and Errors</h2>" >&3
        echo "<font color=\"red\">" >&3
@@ -254,6 +259,7 @@ readlength_script=$barracoda_script_dir/plot-read-lengths.R
 summarize_script=$barracoda_script_dir/summarize-barcodes.R
 pvalscript=$barracoda_script_dir/collect-pvals-and-logfc.R
 platesetup_script=$barracoda_script_dir/plot-barcodes-on-plates.R
+clean_nanopore_script=$barracoda_script_dir/clean_nanopore_data_fast.py
 
 # Path to log
 r_logcheckinputdata=$log_dir/r_checkinput.R.log
@@ -263,6 +269,27 @@ r_log_pval=$log_dir/collect-pvals-and-logfc.R.log
 r_log_plate=$log_dir/plot-barcodes-on-plates.R.log
 echo -e $'  -> Log can be found in' $r_log
 
+
+#####################################################################
+##################################################################### NEW
+
+# If Nanopore flag is set, process the data
+
+if [ "$is_nanopore" -eq 1 ]; then
+    cleaned_fasta="${intermediate_dir}/cleaned_nanopore_data.fasta"
+    echo -e $'This is the $seq_data_fastq before cleaning: ' $seq_data_fastq
+    echo -e $'\n Nanopore mode enabled. Running clean_nanopore_data_fast.py using the following command line:'
+    echo -e $'	-> ' "$Python" "$clean_nanopore_script" '-i' "$seq_data_fastq" '-o' "$cleaned_fasta" '-j' "${input_dir}/junk_reads.fastq" '> ' "$log_dir/nanopore_cleaning.log" '2>&1'
+    "$Python" "$clean_nanopore_script" -i "$seq_data_fastq" -o "$cleaned_fasta" -j "${intermediate_dir}/junk_reads.fastq" -x "${intermediate_dir}" > "$log_dir/nanopore_cleaning.log" 2>&1
+    
+    ExitIfErrors "$log_dir/nanopore_cleaning.log"
+
+    # Use cleaned FASTA file as new input
+    seq_data_fastq="$cleaned_fasta"
+    echo -e $'This is the $seq_data_fastq: ' $seq_data_fastq
+
+    echo -e $'Using cleaned Nanopore FASTA file as input: $seq_data_fastq for the Barracoda pipeline'
+fi
 
 #####################################################################
 #####################################################################
@@ -346,11 +373,11 @@ CheckLengthFasta() {
 
 # exstract only sequence with awk, then remove all special characters from text, get unique length of the sequences
 sample_id_tags_length=$(awk '{if(NR%2==0) print $1}' $sample_id_tags_fasta | sed $'s/[^[:print:]\t]//g' | awk '{print length}' | uniq)
-CheckLengthFasta "$sample_id_tags_length" "sample identification tag"
+#CheckLengthFasta "$sample_id_tags_length" "sample identification tag"
 a_epitope_tag_length=$(awk '{if(NR%2==0) print $1}' $a_epitope_tag_fasta | sed $'s/[^[:print:]\t]//g' | awk '{print length}' | uniq)
-CheckLengthFasta "$a_epitope_tag_length" "epitope tag A"
+#CheckLengthFasta "$a_epitope_tag_length" "epitope tag A"
 b_epitope_tag_length=$(awk '{if(NR%2==0) print $1}' $b_epitope_tag_fasta | sed $'s/[^[:print:]\t]//g' | awk '{print length}' | uniq)
-CheckLengthFasta "$b_epitope_tag_length" "epitope tag B"
+#CheckLengthFasta "$b_epitope_tag_length" "epitope tag B"
 echo -e $'  -> All fasta files contained reads of same lengths..'
 
 # Length of primers
@@ -364,6 +391,7 @@ echo -e $'  -> The expected barcode length is' $expected_barcode_length
 
 # Make lengths array for later use
 declare -A lengths
+
 lengths[sample_id_tags_fasta]=$sample_id_tags_length
 lengths[a_epitope_tag_fasta]=$a_epitope_tag_length
 lengths[b_epitope_tag_fasta]=$b_epitope_tag_length
@@ -376,6 +404,7 @@ lengths[b_forward_primer_fasta]=$b_forward_primer_length
 #####################################################################
 # Check if sequencing data file is zipped
 echo -e $'\n Checking sequence file ...'
+echo -e $'This is the $seq_data_fastq: ' $seq_data_fastq
 
 fastx_type=$(file -b --mime-type ${seq_data_fastq}) # find the file type of the sequencing data file, will include zip if the file is zipped 
 if [[ $fastx_type = *"zip"* ]] ; then
@@ -705,13 +734,6 @@ fi
 
 #####################################################################
 #####################################################################
-# Heartfelt message
-Header 'Goodbye'
-echo $' The script did not hault with error...... Well done. :)\n'
-
-
-#####################################################################
-#####################################################################
 # Make html for the webserver output 
 
 if [[ "$web_mode" = 1 ]] ; then
@@ -741,25 +763,3 @@ if [[ "$web_mode" = 1 ]] ; then
    echo "<img src='${webdir}${webresultdir}/total-reads-per-key.png'>" >&3
 
 fi
-
-
-# How to copy newest script from mac
-# mount_tuba
-# cp /Users/evakjr/Documents/DTU/Barracoda/2022/ny\ barracoda\ \<3/barracoda-2.0.sh /Users/evakjr/Documents/DTU/Tuba/tuba/barracoda/barracoda-2.0 
-
-# How to run: 
-	# 100k
-		# ./barracoda-2.0.sh -f test_data/seq_data.fastq -m test_data/sample_id_table.txt -a test_data/barcode_annotations.xlsx -A test_data/sample_id_tags.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D test_data/a.fasta -E GGTCAGCATCATTTCC -F test_data/b.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA -p test_data/barcode_plate_setup.xlsx
-
-	# 10K
-		# ./barracoda-2.0.sh -f test_data/test_10k.fastq -m test_data/sample_id_table.txt -a test_data/barcode_annotations.xlsx -A test_data/sample_id_tags.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D test_data/a.fasta -E GGTCAGCATCATTTCC -F test_data/b.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA -p test_data/barcode_plate_setup.xlsx
-
-	# 10K xlsx sample_id_table
-		# /home/tuba/barracoda/barracoda-2.0/barracoda-2.0.sh -f test_data/test_10k.fastq -m test_data/sample_id_table.xlsx -a test_data/barcode_annotations.xlsx -A test_data/sample_id_tags.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D test_data/a.fasta -E GGTCAGCATCATTTCC -F test_data/b.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA -p test_data/barcode_plate_setup.xlsx
-
-# stort eksempel 
-# cd /home/people/kamkj/run_barracoda/Susana/Bseq188/
-# /home/tuba/barracoda/barracoda-2.0/barracoda-2.0.sh -f data/Bseq188.fastq -m data/Sample_identification_table.xlsx  -a data/Annotations-removed-barcodes-with-no-inputs.xlsx -A data/2_SampleIentificationTag_71_to_259_nov_2021.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/3_EpitopeTagA_new_barcodes.fasta -E GGTCAGCATCATTTCC -F data/4_EpitopeTagB_plate_43-54.fasta -G 6 -H CAATCTTGAGCGTGACTTAAG
-
-
-
