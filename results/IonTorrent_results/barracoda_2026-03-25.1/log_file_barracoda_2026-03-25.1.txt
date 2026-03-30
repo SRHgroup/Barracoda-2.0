@@ -1,0 +1,202 @@
+
+
+                     
+ B A R R A C O D A 
+                     
+
+ You are now running Barracoda 2.0....
+ In case of problems, please contact kamkj@dtu.dk, and provide the process id of your job: barracoda_2026-03-25.1 
+ The job folder is: store.barracoda_2026-03-25.1
+
+
+ Required arguments parsed to Barracoda 
+ Timestamp: 03/25/26 at 16:15:35 
+
+ The -f option was succesfully parsed to barracoda. The Sequencing data file (fasta or fastq) is defined as:
+        data/IonTorrent_data/IonTorrent_data.fastq
+ The -m option was succesfully parsed to barracoda. The sample identification table is defined as:
+        data/IonTorrent_data/sample_identification.xlsx
+ The -a option was succesfully parsed to barracoda. The barcode annotations table is defined as:
+        data/IonTorrent_data/barcode_annotation.xlsx
+ The -A option was succesfully parsed to barracoda. The sample identification tag is defined as:
+        data/IonTorrent_data/sample-identification-tag.fasta
+ The -B option was succesfully parsed to barracoda. The forward primer A sequence is defined as:
+        GAAGTTCCAGCCAGCGTCACAGTTT
+ The -C option was succesfully parsed to barracoda. The N-sequence length (A end) is defined as:
+        6
+ The -D option was succesfully parsed to barracoda. The epitope tag A FASTA file is defined as:
+        data/IonTorrent_data/EpitopeTagA.fasta
+ The -E option was succesfully parsed to barracoda. The annealing region sequence is defined as:
+        GGTCAGCATCATTTCC
+ The -F option was succesfully parsed to barracoda. The epitope tag B FASTA file is defined as:
+        data/IonTorrent_data/EpitopeTagB.fasta
+ The -G option was succesfully parsed to barracoda. The N-sequence length (B end) is defined as:
+        6
+ The -H option was succesfully parsed to barracoda. The forward primer B sequence is defined as:
+        GTTATCGGCTCGTTCACACTCGA
+
+
+ Optional arguments parsed to Barracoda 
+ Timestamp: 03/25/26 at 16:15:35 
+
+ The -p option was succesfully parsed to barracoda and the barcode plate setup table is defined:
+  -> Path: data/IonTorrent_data/barcode-plate-setup.xlsx.
+ The -o option was succesfully parsed to barracoda and the extra output directory is defined:
+  -> Path: results/IonTorrent_results.
+
+ Default setting will be used to create the working directory because option -p was not used.
+  -> Check out the help page by using the -h option..
+
+ The following directories were created:
+  -> Input directory: store.barracoda_2026-03-25.1/input
+  -> Intermediate files directory: store.barracoda_2026-03-25.1/files_intermediate
+  -> Output directory: store.barracoda_2026-03-25.1/output
+
+
+ Paths to R scripts and logs 
+ Timestamp: 03/25/26 at 16:15:35 
+
+  -> Defining paths to R scripts
+  -> Log can be found in
+
+
+ Checking input data 
+ Timestamp: 03/25/26 at 16:15:35 
+
+ Checking if sequences only contain base pair letters (A, C, T, G) ...
+  -> The forward A primer, annealing region and forward B primer sequences seem to be right..
+ Making checks in R 
+  -> Running read checkinputdata_script with following command line:
+  	 /Users/s112819/opt/anaconda3/envs/barracoda_env/bin/R --vanilla --slave --args store.barracoda_2026-03-25.1/input/sample_id_table.xlsx store.barracoda_2026-03-25.1/input/sample_id_table.txt store.barracoda_2026-03-25.1/input/barcode_annotations.xlsx < <(cat scripts/functions.R scripts/r_checkinput.R ) > store.barracoda_2026-03-25.1/files_intermediate/logs/r_checkinput.R.log 2>&1
+
+ Checking if a-keys in sample_id_table file exist in sample FASTA file ...
+  -> All a-keys in sample_id_table matches headers in sample_id_tags_fasta..
+
+ Lengths and positions of sequences 
+  -> All fasta files contained reads of same lengths..
+  -> The expected barcode length is 136
+
+ Checking sequence file ...
+This is the $seq_data_fastq:  data/IonTorrent_data/IonTorrent_data.fastq
+  -> The sequencing file is FASTQ file, we can carry on :)
+  -> The sample id table is XLSX, we can carry on :)
+
+
+ Determining positions of sequences and adding to fasta 
+ Timestamp: 03/25/26 at 16:15:37 
+
+ A new directory has been created to store fasta with positions:
+   store.barracoda_2026-03-25.1/files_intermediate/fasta_with_positions 
+
+ Lengths and positions has been added to fasta files:
+  -> The sample identification tag sequence length is 10 ( Start: 1 End: 10 )
+  -> The forward primer A sequence length is 25 ( Start: 11 End: 35 )
+  -> The N-sequence (A end) length length is 6 ( Start: 36 End: 41 )
+  -> The epitope tag A sequence length is 25 ( Start: 42 End: 66 )
+  -> The annealing region sequence length is 16 ( Start: 67 End: 82 )
+  -> The epitope tag B sequence length is 25 ( Start: 83 End: 107 )
+  -> The N-sequence (B end) length length is 6 ( Start: 108 End: 113 )
+  -> The forward primer B sequence length is 23 ( Start: 114 End: 136 )
+
+
+ Bowtie index databases <3 
+ Timestamp: 03/25/26 at 16:15:37 
+
+ A new directory has been created to store fasta with positions:
+   store.barracoda_2026-03-25.1/files_intermediate/fasta_with_positions
+
+ Creating indices of sequence files with bowtie2Build  
+  -> Creating index for a_forward_primer_fasta: store.barracoda_2026-03-25.1/input/a_forward_primer.fasta
+  -> Creating index for a_epitope_tag_fasta: store.barracoda_2026-03-25.1/input/a_epitope_tag.fasta
+  -> Creating index for annealing_fasta: store.barracoda_2026-03-25.1/input/annealing.fasta
+  -> Creating index for b_epitope_tag_fasta: store.barracoda_2026-03-25.1/input/b_epitope_tag.fasta
+  -> Creating index for b_forward_primer_fasta: store.barracoda_2026-03-25.1/input/b_forward_primer.fasta
+
+ Sorting sequencing data file ... 
+  -> Sorted file saved as: store.barracoda_2026-03-25.1/files_intermediate/seq_data/seq_data_sorted.fastq
+  -> Total number of reads: 10000
+  -> Length of reads saved as: store.barracoda_2026-03-25.1/files_intermediate/read_lengths/read_lengths_all.txt
+
+
+ Bowtie alignment - all reads <3 
+ Timestamp: 03/25/26 at 16:15:39 
+
+ Aligning reads to constant sequences (primers and annealing region) with bowtie2 
+  -> Aligning a_forward_primer_fasta to reads using the --norc setting and length of 25
+  -> Aligning annealing_fasta to reads using the --norc setting and length of 16
+  -> Aligning b_forward_primer_fasta to reads using the --nofw setting and length of 23
+
+ Filtering sequencing file to only keep reads that aligned to 2 of 3 constant sequences 
+  -> Filtering with 'make-fastq-from-sam.pl' script
+  -> Calculating number of reads for alignment statistics
+
+ Alignment statistics for constant sequences (number of reads): 
+  -> Total (all reads):	 10000
+  -> Forward primer A:	 9983
+  -> Annealing region:	 6290
+  -> Forward primer B:	 5723
+  -> Aligned to 2 of 3:	 6297
+  -> Length of reads saved as: store.barracoda_2026-03-25.1/files_intermediate/read_lengths/read_lengths_2of3.txt
+
+
+ Bowtie alignment - 2 of 3 <3 
+ Timestamp: 03/25/26 at 16:15:41 
+
+ Aligning filtered reads to epitope tags with bowtie2 
+  -> Aligning a_epitope_tag_fasta to filtered reads using the --norc setting and length of 25
+  -> Aligning b_epitope_tag_fasta to filtered reads using the --nofw setting and length of 25
+
+ Filter sequencing file to only keep reads that aligned to epitope tags A and B 
+  -> Filtering with 'merge-sam-by-read-ID.pl' script
+  -> Calculating number of reads for alignment statistics
+
+ Alignment statistics for epitope tags (number of reads): 
+  -> Total (Aligned to 2 of 3):	 6297
+  -> Epitope tag A:      	 6205
+  -> Epitope tag B:      	 5865
+  -> Aligned to A and B:	 5845
+  -> Length of reads saved as: store.barracoda_2026-03-25.1/files_intermediate/read_lengths/read_lengths_AandB.txt
+
+
+ IT IS TIME TO MAP SOME MERGED READS! 
+ Timestamp: 03/25/26 at 16:15:43 
+
+ Mapping constant sequences (primers and annealing region) and epitope tags within each read 
+  -> Creating chunks to run in parallel!
+  -> Dissecting barcodes fast
+  -> Making merged.mapped.reads.txt file!
+ The merged.mapped.reads.txt  file was created succesfully.
+
+
+
+ Clean up to minimize footprint 
+ Timestamp: 03/25/26 at 16:16:31 
+
+  -> Removing seq_data_dir, bowtie_dir, and chunk_dir
+
+
+ Analysis in R 
+ Timestamp: 03/25/26 at 16:16:31 
+
+ Carrying out R analysis including summarization of barcodes 
+  -> Running read lengths scripts with following command line
+  	 /Users/s112819/opt/anaconda3/envs/barracoda_env/bin/R --vanilla --slave --args store.barracoda_2026-03-25.1/files_intermediate/read_lengths/read_lengths_all.txt store.barracoda_2026-03-25.1/files_intermediate/read_lengths/read_lengths_2of3.txt store.barracoda_2026-03-25.1/files_intermediate/read_lengths/read_lengths_AandB.txt store.barracoda_2026-03-25.1/output 136 < <(cat scripts/functions.R scripts/plot-read-lengths.R ) > store.barracoda_2026-03-25.1/files_intermediate/logs/plot-read-lengths.R.log 2>&1
+  -> Running summarize barcodes with following command line
+  	 /Users/s112819/opt/anaconda3/envs/barracoda_env/bin/R --vanilla --slave --args store.barracoda_2026-03-25.1/files_intermediate/merged.mapped.reads.txt store.barracoda_2026-03-25.1/input/sample_id_table.xlsx store.barracoda_2026-03-25.1/output store.barracoda_2026-03-25.1/input/a_epitope_tag.fasta store.barracoda_2026-03-25.1/input/b_epitope_tag.fasta 6 6 store.barracoda_2026-03-25.1/input/barcode_annotations.xlsx < <(cat scripts/functions.R scripts/summarize-barcodes.R ) > store.barracoda_2026-03-25.1/files_intermediate/logs/summarize-barcodes.R.log 2>&1
+  -> Running read lengths scripts with following command line
+  	 /Users/s112819/opt/anaconda3/envs/barracoda_env/bin/R --vanilla --slave --args store.barracoda_2026-03-25.1/output < <(cat scripts/functions.R scripts/collect-pvals-and-logfc.R ) > store.barracoda_2026-03-25.1/files_intermediate/logs/collect-pvals-and-logfc.R.log 2>&1
+
+ Plot of barcodes on plates 
+  -> Plots are being made in R...
+  	 /Users/s112819/opt/anaconda3/envs/barracoda_env/bin/R --vanilla --slave --args store.barracoda_2026-03-25.1/output data/IonTorrent_data/barcode-plate-setup.xlsx store.barracoda_2026-03-25.1/input/barcode_annotations.xlsx < <(cat scripts/functions.R scripts/plot-barcodes-on-plates.R ) > store.barracoda_2026-03-25.1/files_intermediate/logs/plot-barcodes-on-plates.R.log 2>&1
+
+
+ Last-minute copying 
+ Timestamp: 03/25/26 at 16:17:44 
+
+ Log file should be kept in log_dir 
+  -> Moving log file to store.barracoda_2026-03-25.1/files_intermediate/logs
+
+ Output directory copied to other location
+  -> The outout directory copied to other location:
+     results/IonTorrent_results/barracoda_2026-03-25.1
