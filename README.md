@@ -1,47 +1,75 @@
 # Barracoda-2.0
-This repository contains Barracoda-2.0 a tool for analysing DNA barcode sequencing data. 
 
-### Program dependencies
-install perl 
+This repository contains Barracoda-2.0 a tool for analysing DNA barcode sequencing data.
 
-install python 
+# Quick Start
 
-install bowtie2 
+### Install Anaconda:
 
-install R 
+Install Anaconda:
+If Anaconda is not installed on your system, then install it using the link below.
 
-install GNU parallel
+https://repo.anaconda.com/archive/
 
-### Required R Packages
+### Clone the repository:
 
-The following R libraries must be installed:
+Then clone or download the repository: 
 
-install.packages(c("squash", "xlsx", "tidyverse", "ggplot2", 
-                   "openxlsx", "reshape2", "dplyr", "data.table", 
-                   "scales", "tools"))
+```
+git clone https://github.com/SRHgroup/Barracoda-2.0.git
+cd Barracoda-2.0
+```
 
+### Install program dependensies
 
-For edgeR and limma, install from Bioconductor:
+Program dependensies can be found in environment.yml.
+Using conda alows you have all program dependensies in a conda enviroment called barracoda_env
 
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install(c("edgeR", "limma"))
+```
+conda env create -f environment.yml
+```
 
-### Dowload Barracoda-2.0 
-git clone git@github.com:SRHgroup/Barracoda-2.0.git
+Activate conda environment
 
-### Modify paths 
-Modify paths within the barracoda-2.0.sh script
+```
+conda activate barracoda_env
+```
 
-### Test Barracoda  
-./barracoda-2.0.sh -h
+### Modify barracoda paths
+Modify the "barracoda_dir" path within the barracoda-2.0.sh script
 
-### Prepare data files 
+### Test the installation:
 
-### Run Barracoda (-n for Nanopore) 
-./barracoda-2.0.sh -f data/Nanopore/PAS39055_pass_barcode24_small.fastq.gz -m data/Nanopore/sample_id_table.xlsx -a data/Nanopore/barcode_annotations.xlsx -A data/Nanopore/sample_id_tags.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/Nanopore/a_epitope_tag.fasta -E GGTCAGCATCATTTCC -F data/Nanopore/b_epitope_tag.fasta -G 6 -H CAATCTTGAGCGTGACTTAAG -n
+Change permission to barracoda-2.0.sh to make it exicutable. 
 
-### Run Barracoda (Illumina)
-./barracoda-2.0.sh -f data/Illumina/test_10k.fastq -m data/Illumina/sample-idenfication-table-small.xlsx -a data/Illumina/Barcode_annotations_small.xlsx -A data/Illumina/sample.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/Illumina/a.fasta -E GGTCAGCATCATTTCC -F data/Illumina/b.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA
+```
+chmod 775 barracoda-2.0.sh
+```
+
+### Test Barracoda-2.0
+
+```
+./barracoda-2.0.sh -h 
+```
+
+# Example Usage
+
+Barracoda can run using either Illumina/IonTorrent or Nanopore input data
+
+### Run Barracoda-2.0 using Nanopore data 
+
+```
+conda activate barracoda_env
+./barracoda-2.0.sh -m data/Nanopore_data/sample_identification.xlsx -a data/Nanopore_data/barcode_annotation.xlsx -A data/Nanopore_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/Nanopore_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/Nanopore_data/EpitopeTagB.fasta -G 6 -H CAATCTTGAGCGTGACTTAAG -f data/Nanopore_data/Nanopore_data -o test_results/Nanopore_results -n
+```
+Add the plate setup using `-p data/Nanopore_data/barcode-plate-setup.xlsx` (optional)
+
+### Run Barracoda-2.0 using IonTorrent data 
+```
+conda activate barracoda_env
+./barracoda-2.0.sh -m data/IonTorrent_data/sample_identification.xlsx -a data/IonTorrent_data/barcode_annotation.xlsx -A data/IonTorrent_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/IonTorrent_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/IonTorrent_data/EpitopeTagB.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA -f data/IonTorrent_data/IonTorrent_data.fastq -o test_results/IonTorrent_results
+```
+
+Add the plate setup using `-p data/IonTorrent_data/barcode-plate-setup.xlsx` (optional)
 
 
