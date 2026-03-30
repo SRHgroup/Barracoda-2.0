@@ -5,21 +5,22 @@
 
 #####################################################################
 
-# Define paths to R and python
-R="/usr/local/bin/R"
-Python="/usr/local/bin/python"
-
-# Define paths to bowtie tools
-bowtie2="/usr/local/bin/bowtie2"
-bowtie2Build="/usr/local/bin/bowtie2-build"
-
-# Define path to barracoda scripts
-barracoda_script_dir="/home/local/Barracoda-2.0/scripts"
-
-# Define path to storage dir
-default_storage_dir="/home/local/Barracoda-2.0/archive"
+# Define path to Barracoda-2.0
+barracoda_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+barracoda_script_dir="${barracoda_dir}/scripts"
 
 #####################################################################
+
+# Define paths to R and python
+R="$(which R)"
+Python="$(which python)"
+
+# Define paths to bowtie tools
+bowtie2="$(which bowtie2)"
+bowtie2Build="$(which bowtie2-build)"
+
+#####################################################################
+
 # Help message 
 help() {
 	echo
@@ -51,16 +52,16 @@ help() {
 	echo
 	echo -e '  Optional arguments:'
 	echo "  -p   Barcode plate setup table - table with barcode plate layouts. Example: barcode_plate_setup.xlsx"
-	echo "  -s   Storage directory in which jobid folder exist (Default:" $default_storage_dir")."
+	echo "  -s   Storage directory in which jobid folder exist (Default:" $barracoda_dir")."
 	echo "       By the end of a Barracoda run the jobid folder will contain:"
 	echo "					- Input directory to which input files are moved and stored."
 	echo "					- Intermediate directory in which intermediate file is stored"
 	echo " 					- Output directory in which user (web) output is stored"
 	echo "  -o   Optional path that output directory is copied to (e.g. path to web server)"
-    echo "  -c   Sum counts for duplicated sampes. Can be TRUE or FALSE (Default:FALSE)" 
+   echo "  -c   Sum counts for duplicated sampes. Can be TRUE or FALSE (Default:FALSE)" 
 	echo "  -n   Input is Nanopore data (Default:Off)" 	
 	echo "  -k   Keep all intermediate files (Default:Off)"           
-    echo "  -w   Webserver mode (Default:Off)"  
+   echo "  -w   Webserver mode (Default:Off)"  
 	echo "  -h   Print this help information."
 	echo 
 	echo
@@ -94,7 +95,6 @@ while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:wnkh" arg; do
 		o) extra_output_dir=${OPTARG} ;; 
                 c) sum_of_counts=${OPTARG} ;; 
 		n) is_nanopore=1 ;; 
-		w) web_mode=1 ;;
 		k) keep_all=1 ;;
     h) help; exit 0 ;;
   esac
@@ -118,13 +118,13 @@ if [ ! -f "$bowtie2Build" ]; then echo "$bowtie2Build does not exists."; fi
 if [ ! -d "$barracoda_script_dir" ]; then echo "Barracoda script directory $barracoda_script_dir does not exists."; fi
 
 # Check if default storage dir exists
-if [ ! -d "$default_storage_dir" ]; then echo "Default storage directory $default_storage_dir does not exists."; fi
+if [ ! -d "$barracoda_dir" ]; then echo "Default storage directory $barracoda_dir does not exists."; fi
 
 
 #####################################################################
 # Job id folder
-if [ -d $default_storage_dir/store.barracoda_$(date +"%Y-%m-%d").1 ]; then last_num=$(printf "%s\n" $default_storage_dir/store.barracoda_$(date +"%Y-%m-%d").* | sort -Vr | head -1 | rev  | cut -d. -f1 | rev); else last_num=0; fi
-jobid_dir="$default_storage_dir/store.barracoda_$(date +"%Y-%m-%d").$((last_num+1))"
+if [ -d $barracoda_dir/store.barracoda_$(date +"%Y-%m-%d").1 ]; then last_num=$(printf "%s\n" $barracoda_dir/store.barracoda_$(date +"%Y-%m-%d").* | sort -Vr | head -1 | rev  | cut -d. -f1 | rev); else last_num=0; fi
+jobid_dir="$barracoda_dir/store.barracoda_$(date +"%Y-%m-%d").$((last_num+1))"
 mkdir $jobid_dir
 
 # Redefine jobid_dir if -s was used
@@ -166,20 +166,14 @@ ShowErrors() {
    errormsg=`grep -hi "^ERROR" $log_dir/*.log $LogFile` # -i for case-insensitive
    msg="${warnmsg}${errormsg}"
    if [[ $msg != "" ]] ; then
-      echo "<h2>Warnings and Errors</h2>" >&3
-      echo "<font color=\"red\">" >&3
       echo $"${msg}" >&3
-      echo "</font>" >&3
    fi
 }
 
 ExitIfErrors() {
     errormsg=`grep -hi "^ERROR" $1` # -h hide filename path, -i for case-insensitive
     if [[ $errormsg != "" ]] ; then
-       echo "<h2>Warnings and Errors</h2>" >&3
-       echo "<font color=\"red\">" >&3
        echo $"${errormsg}" >&3
-       echo "</font>" >&3
        exit
    fi
 }
@@ -726,40 +720,30 @@ else
         
         mkdir -p $extra_output_dir # make directory if it does not exists
         webresultdir="barracoda_${jobid_dir##*_}"
-	cp -r $output_dir $extra_output_dir/$webresultdir # copy the output directory to new location defined by the option -o
+	     cp -r $output_dir $extra_output_dir/$webresultdir # copy the output directory to new location defined by the option -o
         cd $extra_output_dir
         zip -rq ${webresultdir}.zip ${webresultdir}/*
-        
+        echo "Final results can be found in: $extra_output_dir/$webresultdir" >&3
 fi
 
 #####################################################################
-#####################################################################
-# Make html for the webserver output 
+# Optional cleanup: remove job directory if -o was used AND results exist
 
-if [[ "$web_mode" = 1 ]] ; then
+if [ -n "$extra_output_dir" ]; then
+    shopt -s nullglob
+    result_files=($jobid_dir/output/experiment_*/fold_change.xlsx)
+    shopt -u nullglob
 
-   # Create HTML output
-   webdir=`echo $extra_output_dir | cut -d'/' -f5-`
-   webdir="/tuba/${webdir}/"
-   #webdir="$extra_output_dir/$webresultdir"  
-   echo "In case of problems, please email kamkj (at) dtu.dk, and provide the process id of your job: ${jobid_dir##*_}" >&3
-
-   # Show warnings with the ShowErrors function
-   ShowErrors
-
-   # Write a reference to the results
-   echo "<h2>Download results</h2>" >&3
-   echo "<a href=\"${webdir}${webresultdir}.zip\">Download results as .zip file</a>" >&3
-   echo "<a href=\"${webdir}${webresultdir}\">Show entire results folder</a>" >&3
-	
-   echo "<h2>Summary of data and analysis</h2>" >&3
-   
-   # show read lengths plot
-   echo "<h4>NGS read lengths</h4>" >&3
-   echo "<img src='${webdir}${webresultdir}/read-lengths.png'>" >&3
-   
-   # show total reads per A-key plot	
-   echo "<h4>Distribution of reads among sample keys</h4>" >&3
-   echo "<img src='${webdir}${webresultdir}/total-reads-per-key.png'>" >&3
-
+    if [ ${#result_files[@]} -gt 0 ]; then
+        echo -e $'\n Cleaning up job directory because -o option was used and results exist...'
+        echo -e $'  -> Removing:' "$jobid_dir"
+        rm -rf "$jobid_dir"
+        echo -e $'\n DONE'
+    else
+        echo -e $'\n Skipping cleanup: no fold_change.xlsx results found.'
+        echo -e $'Intermediate results found in:' "$jobid_dir"
+    fi
 fi
+
+
+
