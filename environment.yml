@@ -1,0 +1,41 @@
+name: barracoda_env
+
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # bowtie2
+  - bowtie2
+
+  # GNU parallel
+  - parallel
+
+  # R
+  - r-base
+  - r-essentials
+  - bioconductor-edger
+  - bioconductor-limma
+  - r-tidyverse
+  - r-ggplot2
+  - r-dplyr
+  - r-data.table
+  - r-scales
+  - r-reshape2
+  - r-openxlsx
+  - r-xlsx
+  - r-squash
+
+  # Python
+  - python
+  - regex
+  - biopython
+
+  # Perl
+  - perl
+  - perl-app-cpanminus  # optional but very useful
+
+  # Utilities
+  - pip
+  - openjdk  # needed for xlsx
