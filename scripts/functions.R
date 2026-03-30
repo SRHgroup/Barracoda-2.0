@@ -39,13 +39,13 @@ read.annotation <- function(f) {
     names(sheets) <- sheets
     
     anno <- lapply(sheets, function(i) {
-
+      
       anno_tmp <- read.xlsx(f, sheet = i, rowNames = FALSE)
       
       if(any.duplications(anno_tmp[,1], filename = i)) stop()
       
       read.xlsx(f, sheet = i, rowNames = TRUE)
-    
+      
     })
     
   }
@@ -54,10 +54,10 @@ read.annotation <- function(f) {
 
 # Handle text files that are missing the trailing newline on last line
 file_w_last_newline <- function(f) {
-
+  
   pipe(paste("sed -e '$a\\'", f))
   
-  }
+}
 
 
 
@@ -134,7 +134,7 @@ read.samplemap <- function(f) {
   if(!isText & !isExcel) stop("[ERROR] Sample-key-map file does not seem to be either a text file or an excel sheet.")
   
   if(isText) sid <- read.delim(file_w_last_newline(f), header = FALSE, as.is = TRUE)
-
+  
   if(isExcel) sid <- read.xlsx(f, colNames = FALSE)
   
   # If experiment-column is missing, all must be from same experiment
@@ -230,7 +230,7 @@ ReplicateMeans <- function(x, xmap) {
   
   # first remove any columns of x not mentioned in xmap
   x <- x[ , names(xmap), drop = FALSE]
-    
+  
   if (any(duplicated(xmap))) {
     xMean <- sapply(split(names(xmap), factor(xmap, levels = unique(xmap))), function(s) {
       if (length(s) > 1) { return(rowMeans(x[,as.character(s)])) }
@@ -262,37 +262,37 @@ removeSamplesWithZeroReads <- function(samples, mat) {
     return(samples_new[!sapply(samples_new, is.null)] )
   }
   
-    libsizes <- colSums(mat[ , samples, drop = FALSE])
+  libsizes <- colSums(mat[ , samples, drop = FALSE])
+  
+  if(all(libsizes == 0)) {
+    message("WARNING: the following akeys have been skipped because they had zero reads: ",
+            paste(samples, collapse = ", "))
+    return(NULL)
+  }
+  
+  if(any(libsizes == 0)) {
+    message("WARNING: the following akeys have been skipped because they had zero reads: ",
+            paste(samples[libsizes == 0], collapse = ", "))
+    return(samples[libsizes > 0])
     
-    if(all(libsizes == 0)) {
-      message("WARNING: the following akeys have been skipped because they had zero reads: ",
-              paste(samples, collapse = ", "))
-      return(NULL)
-    }
-    
-    if(any(libsizes == 0)) {
-      message("WARNING: the following akeys have been skipped because they had zero reads: ",
-              paste(samples[libsizes == 0], collapse = ", "))
-      return(samples[libsizes > 0])
-      
-    }
-    
-    return(samples)
-    
+  }
+  
+  return(samples)
+  
 }
 
 calcFoldChange <- function(sample.list, input.samples, mUniq){
   # source("http://bioconductor.org/biocLite.R")
   # biocLite("edgeR")
   require(edgeR)
-	#print("cal log fold change input")
-	#print(sample.list)
-	#print(input.samples)
-	#print(mUniq)
+  #print("cal log fold change input")
+  #print(sample.list)
+  #print(input.samples)
+  #print(mUniq)
   ## Run edgeR analysis ---------------------------------------------------
   edge <- lapply(names(sample.list), function(i) {
     s <- sample.list[[i]]
-
+    
     y  <- DGEList(counts = mUniq[, c(s, input.samples)], 
                   group = c(rep(2, length(s)), rep(1, length(input.samples)))) 
     #print("y")
@@ -324,7 +324,7 @@ calcFoldChange <- function(sample.list, input.samples, mUniq){
     )
   })
   
-
+  
   results <- lapply(c(logFC = "logFC", FDR = "FDR"), function(i) {
     j <- do.call(cbind, lapply(edge, function(x) x[[i]]))
     colnames(j) <- names(sample.list)
@@ -350,12 +350,10 @@ findEnrichedBarcodes <- function(logfc, p, fdr, mUniq) {
   return(enriched)
 }
 
-
 normReadCounts <- function(sample.list, akey_names, mUniq, edgeR_output, enriched_barcodes) {
   
   result_list <- lapply(names(sample.list), function(i) {
     s <- sample.list[[i]]
-
     # get norm factors for this analysis    
     norm.facs <- subset(edgeR_output$norm.factors, analysis == i)
     
@@ -379,9 +377,9 @@ normReadCounts <- function(sample.list, akey_names, mUniq, edgeR_output, enriche
   
   result_df <- do.call(rbind, result_list)
   
-  logfc <- melt(edgeR_output$logFC, value.name = "logFC")
-  fdr <- melt(edgeR_output$FDR, value.name = "FDR")
-  enriched <- melt(enriched_barcodes, value.name = "Enriched")
+  logfc <- reshape2::melt(edgeR_output$logFC, value.name = "logFC")
+  fdr   <- reshape2::melt(edgeR_output$FDR, value.name = "FDR")
+  enriched <- reshape2::melt(enriched_barcodes, value.name = "Enriched")
   
   result_df <- merge(result_df, logfc)
   result_df <- merge(result_df, fdr)
@@ -397,17 +395,17 @@ plotNormReadCounts_xy <- function(m, fdr) {
   
   minFc <- min(-3, pretty(m[,"logFC"])[1] )
   maxFc <- max( 3, rev(pretty(m[,"logFC"]))[1]      )
-
+  
   col_labs <- c("< -2","< -1","-1 to 1","> 1","> 2")
   m$logFC_factor <- cut(m[,"logFC"],
-     breaks = c(minFc,-2,-1,1,2,maxFc),
-     labels = col_labs)
+                        breaks = c(minFc,-2,-1,1,2,maxFc),
+                        labels = col_labs)
   m$logFC_factor <- factor(m$logFC_factor, levels = rev(col_labs))
   
   p <- ggplot(m,
-         aes(x = input,
-             y = count,
-             color = logFC_factor)) +
+              aes(x = input,
+                  y = count,
+                  color = logFC_factor)) +
     geom_point(shape = 16, size = 1, alpha = 0.8, stroke = 0.5) +
     scale_color_manual("Log fold change", values = rev(setNames(blueorange(5), col_labs)), drop = FALSE) +
     scale_x_log10() + scale_y_log10() + ylab("Sample") +
@@ -416,9 +414,9 @@ plotNormReadCounts_xy <- function(m, fdr) {
     theme_bw() +
     theme(panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-	  text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
-	  ) +
-  
+          text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
+    ) +
+    
     # theme(panel.spacing=grid::unit(2, "lines")) +
     geom_abline(slope = 1)
   
@@ -429,22 +427,22 @@ plotNormReadCounts_xy <- function(m, fdr) {
                         aes(x = input,
                             y = count,
                             shape = Enriched),
-                         color = 1, size = 1, stroke = 0.5) +
+                        color = 1, size = 1, stroke = 0.5) +
       scale_shape_manual("", values = c(1,1))
   }
   
   p <- p + ggtitle("Fraction of reads per barcode (normalized by edgeR)")
   
-  }
+}
 
 
 
 MakeBins <- function(
-  x,           # The AB barcodes for which you need to assign bins.
-  ABpeps,      # The unique AB-combinations in use. A1B1, A1B2, etc... (eg. factor levels)
-  ### ABpeps is currently ignored!!! -Aron
-  sep = "-",
-  splitB = 2   # Split B's into 2 bins So if there are 24 B's, make the bins from 1-12 and 13-24
+    x,           # The AB barcodes for which you need to assign bins.
+    ABpeps,      # The unique AB-combinations in use. A1B1, A1B2, etc... (eg. factor levels)
+    ### ABpeps is currently ignored!!! -Aron
+    sep = "-",
+    splitB = 2   # Split B's into 2 bins So if there are 24 B's, make the bins from 1-12 and 13-24
 ) {
   x <- as.character(x)
   x.A <- as.integer(sub("^A(\\d+)B(\\d+)$", "\\1", x, perl = TRUE))
@@ -518,7 +516,7 @@ prepareCounts <- function(m, sample_levels, pep_levels, p, a, exp_name) {
   # order by input counts
   barcode_index <- rownames(m)[order(m[,"input"])]
   
-  tmp <- melt(m, value.name = "Count", as.is = TRUE)
+  tmp <- reshape2::melt(m, value.name = "Count", as.is = TRUE)
   df <- merge(subset(tmp, sample == "input", select = c("Barcode", "Count")),
               subset(tmp, sample != "input"), by = "Barcode", suffixes = c("_input", ""))
   
@@ -528,9 +526,9 @@ prepareCounts <- function(m, sample_levels, pep_levels, p, a, exp_name) {
     x$Frac_sample <- x$Count/sum(x$Count)
     return(x)
   }), f = df$sample)
-    
+  
   df <- df_norm
-    
+  
   sample_levels <- sample_levels[sample_levels != "input"]
   df$sample <- factor(df$sample, levels = sample_levels)
   
@@ -539,7 +537,7 @@ prepareCounts <- function(m, sample_levels, pep_levels, p, a, exp_name) {
   # df$Count <- ifelse(df$Count > 0 & df$Count <= 1, 1.1, df$Count)
   
   # Add enrichment
-  df_p <- melt(p, value.name = "Enriched", as.is = TRUE)
+  df_p <- reshape2::melt(p, value.name = "Enriched", as.is = TRUE)
   df <- merge(df, df_p, all = TRUE)
   
   # # Add HLA info
@@ -576,9 +574,9 @@ findMHCheader <- function(headers, filename = "") {
              headers,
              value = TRUE,
              ignore.case = TRUE
-             )
-        )
+      )
     )
+  )
   
   if(length(matching_headers)  > 1) {
     
@@ -591,16 +589,16 @@ findMHCheader <- function(headers, filename = "") {
             "). Using the first one (",
             hla_index,
             ")."
-            )
-  
+    )
+    
   } else if(length(matching_headers) == 0) {
     
     stop("ERROR: Could not find HLA info in annotation file ",
-            filename,
-            ". All annotation files must include a column with HLA information. ", 
-            "Make sure the column header includes one of the following words so that I can find it: ",
-            paste(mhc_patterns, collapse = ", "),
-            ".")
+         filename,
+         ". All annotation files must include a column with HLA information. ", 
+         "Make sure the column header includes one of the following words so that I can find it: ",
+         paste(mhc_patterns, collapse = ", "),
+         ".")
     
   } else if(length(matching_headers) == 1) {
     hla_index <- matching_headers[1] 
@@ -714,7 +712,7 @@ plotCounts_HLA <- function(x, cols) {
 prepareFoldChange <- function(m, sample_levels, pep_levels, p) {
   require(reshape2)
   
-  df <- melt(m, value.name = "logFC", as.is = TRUE)
+  df <- reshape2::melt(m, value.name = "logFC", as.is = TRUE)
   df$sample <- factor(df$sample, levels = sample_levels)
   df$Barcode <- factor(as.character(df$Barcode), levels = pep_levels)
   
@@ -796,9 +794,9 @@ plotReadsPerSample <- function(tab, sid) {
   # key_numbers <- as.numeric(sub(".*_(\\d+)$", "\\1", df$Key))
   df$Key <- sub(".*_(\\d+)$", "\\1", df$Key)
   df$Key <- factor(df$Key, levels = unique(df$Key[order(as.numeric(df$Key))]))
-
+  
   df$Number.of.reads[is.na(df$Number.of.reads)] <- 0
-	
+  
   # ensure experiment is a factor
   df$Experiment <- factor(df$Experiment)
   
@@ -821,8 +819,8 @@ plotReadsPerSample <- function(tab, sid) {
     geom_text(aes(x = Key, label = sample, y = 0),
               vjust = 0.5, hjust = 0, size = 1.5, nudge_y = nudge) +
     theme(plot.margin = grid::unit(c(1,1,1,1), "cm"),
-	  text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
-	  ) +
+          text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
+    ) +
     guides(fill = guide_legend(nrow = min(nkeys, ncols)))
   
 }
@@ -834,8 +832,8 @@ plotTotals_Exp <- function(x) {
   require(reshape2)
   
   x$Sample <- as.character(x$Sample)
-  mdf <- melt(x, id.var = c("Sample","clonal"))
-  x <- dcast(mdf, Sample+clonal~variable, drop = FALSE, fill = NA)
+  mdf <- reshape2::melt(x, id.var = c("Sample","clonal"))
+  x <- reshape2::dcast(mdf, Sample+clonal~variable, drop = FALSE, fill = NA)
   
   # x$Replicate <- factor(x$Replicate, levels = rev(sort(as.numeric(unique(x$Replicate)))))
   
@@ -849,8 +847,8 @@ plotTotals_Exp <- function(x) {
     xlab("Sample") +
     theme(axis.ticks = element_blank(),
           strip.text.x = element_text(size=5),
-	  text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
-	  ) +
+          text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
+    ) +
     coord_flip()
   return(p2)
 }
@@ -867,12 +865,12 @@ calcBarplotHeight <- function(n, base = 4, div = 6) {
 prepareTables <- function(fc, sid_map, mUniq, dim.names) {
   # Table of log fold change and p values
   table_pvals <- merge(
-    melt(fc$logFC, value.name = "log_fold_change", as.is = TRUE),
-    melt(fc$FDR, value.name = "p", as.is = TRUE)
+    reshape2::melt(fc$logFC, value.name = "log_fold_change", as.is = TRUE),
+    reshape2::melt(fc$FDR, value.name = "p", as.is = TRUE)
   )
   
   # Table of read counts per barcode per sample
-  table_counts <- melt(mUniq, value.name = "count", as.is = TRUE)
+  table_counts <- reshape2::melt(mUniq, value.name = "count", as.is = TRUE)
   
   # Specify the replicate number (1, 2, 3, ... etc)
   table_counts$rep <- MarkReplicates(sid_map)[table_counts$sample]
@@ -981,7 +979,7 @@ WriteMultiSheetExcel <- function(x, dir, file, andTxt = c("first", "all", "appen
   
   file <- paste0(file, ".xlsx")
   removeIfFound(file)
-
+  
   # Write as txt as well
   for (i in names(x)) {
     if(!is.na(txtFile[i])) {
@@ -995,7 +993,7 @@ WriteMultiSheetExcel <- function(x, dir, file, andTxt = c("first", "all", "appen
     write.xlsx(x, file = file, row.names = FALSE)
   }
   
-
+  
 }
 
 # Take a dataframe and make a list where each element is a dataframe of ncol = 1 for each column.
@@ -1040,248 +1038,248 @@ printGgplot <- function(p, file, dir, height = 8, width = 8) {
 #----- Functions to plot data on lab-plate layout
 
 readPlateLayoutFromExcel <- function(plateFile) {
-	require(openxlsx)
-	require(reshape2)
-
-	#------- Get the plate layouts
-
-	plates <- read.xlsx(plateFile, colNames = FALSE)
-
-	if(nrow(plates) %% 17 != 0 ) stop("[ERROR] Number of rows must be divisible by 17 (16 rows plus 1 header per plate)")
-	if(ncol(plates)       != 25) stop("[ERROR] Number of columns must be exactly 25 (24 columns plus 1 header per plate)")
-
-	#------- Split into plates (one matrix per plate)
-
-	groups <- ceiling(seq_len(nrow(plates))/17) # 17, because a plate has 16 rows, plus 1 header
-	plates <- split(plates, groups)
-	names(plates) <- sapply(plates, function(x) x[1,1]) # name is in the top left corner of each plate
-
-	plates_new <- lapply(plates, function(x) {
-		m <- as.matrix(x[-1,-1])                   # just well contents
-		dimnames(m) <- list(x[-1,1], x[1, -1])     # row and column names
-		allNA <- function(x) all(is.na(x))         # identify rows with all NA (empty values)
-		m[!apply(m, 1, allNA),!apply(m, 2, allNA)] # remove those rows
-	})
-
-
-	#------- Reshape each matrix and combine in one table
-
-	plates_melt <- lapply(plates_new, melt, varnames = c("row", "column")) # convert from xy matrix to columns x and y
-	plates_melt <- lapply(names(plates_melt), function(x) data.frame(plates_melt[[x]], plate = x)) # add plate column
-	all_plates <- do.call(rbind, plates_melt) # combine all plates in one table
-
-	all_plates$row    <- factor(all_plates$row, levels = sort(levels(all_plates$row), decreasing = TRUE))
-	all_plates$column <- factor(all_plates$column, levels = unique(all_plates$column))
-	all_plates$plate  <- factor(all_plates$plate, levels = names(plates))
-
-	all_plates$value[all_plates$value == ""] <- NA
-
-	if(any(duplicated(na.omit(all_plates$value)))) stop("[ERROR] One or more barcodes were found in more than one well in the plate layout excel sheet. Each barcode should be unique!")
-
-	return(all_plates)
+  require(openxlsx)
+  require(reshape2)
+  
+  #------- Get the plate layouts
+  
+  plates <- read.xlsx(plateFile, colNames = FALSE)
+  
+  if(nrow(plates) %% 17 != 0 ) stop("[ERROR] Number of rows must be divisible by 17 (16 rows plus 1 header per plate)")
+  if(ncol(plates)       != 25) stop("[ERROR] Number of columns must be exactly 25 (24 columns plus 1 header per plate)")
+  
+  #------- Split into plates (one matrix per plate)
+  
+  groups <- ceiling(seq_len(nrow(plates))/17) # 17, because a plate has 16 rows, plus 1 header
+  plates <- split(plates, groups)
+  names(plates) <- sapply(plates, function(x) x[1,1]) # name is in the top left corner of each plate
+  
+  plates_new <- lapply(plates, function(x) {
+    m <- as.matrix(x[-1,-1])                   # just well contents
+    dimnames(m) <- list(x[-1,1], x[1, -1])     # row and column names
+    allNA <- function(x) all(is.na(x))         # identify rows with all NA (empty values)
+    m[!apply(m, 1, allNA),!apply(m, 2, allNA)] # remove those rows
+  })
+  
+  
+  #------- Reshape each matrix and combine in one table
+  
+  plates_melt <- lapply(plates_new, melt, varnames = c("row", "column")) # convert from xy matrix to columns x and y
+  plates_melt <- lapply(names(plates_melt), function(x) data.frame(plates_melt[[x]], plate = x)) # add plate column
+  all_plates <- do.call(rbind, plates_melt) # combine all plates in one table
+  
+  all_plates$row    <- factor(all_plates$row, levels = sort(levels(all_plates$row), decreasing = TRUE))
+  all_plates$column <- factor(all_plates$column, levels = unique(all_plates$column))
+  all_plates$plate  <- factor(all_plates$plate, levels = names(plates))
+  
+  all_plates$value[all_plates$value == ""] <- NA
+  
+  if(any(duplicated(na.omit(all_plates$value)))) stop("[ERROR] One or more barcodes were found in more than one well in the plate layout excel sheet. Each barcode should be unique!")
+  
+  return(all_plates)
 }
 
 
 
 plotDataOnPlates <- function(x, fileName, plates, invertSet, log = FALSE, skip = 20, symmetric = FALSE, ValueName = "Reads", addSummaries = TRUE) {
-	x <- as.data.frame(x)
-
-	barcodes <- plates[ ,"value"]
-
-	# check that all barcodes are in the plates
-	problemRows <- rowSums(x)>0 & ! rownames(x) %in% barcodes
-	absent <- rownames(x[problemRows, , drop = FALSE])
-	counts <-  rowSums(x[problemRows, , drop = FALSE])
-	if(any(problemRows )) message("WARNING: Some barcodes found in data were not present in the supplied barcode plate layout: ",
-	                              paste(
-	                                paste0(
-	                                  apply(
-	                                    data.frame(absent, counts)[rev(order(counts)),],
-	                                    1,
-	                                    paste0,
-	                                    collapse = " ("
-	                                   ),
-	                                  " reads)"
-	                                  ),
-	                                collapse = ", "
-	                                )
-	                              )
-
-	if(addSummaries) {
-	  dat <- cbind(x, sum_of_all = rowSums(x), present_in_any = rowSums(x != 0))
-	} else {
-	  dat <- cbind(x)
-	}
-	
-	if(log & any(dat < 0)) stop("[ERROR] All values must be non-negative when log = TRUE.") 
-	
-	if(log) symmetric <- FALSE   # if log scale, scales shouldn't be symmetri around zero 
-
-	twoColor <- !missing(invertSet)
-
-	if(twoColor) symmetric <- TRUE # if two colors are used (with invertSet) the scale should be symmetric around zero, to ensure that values = 0 will appear grey
-
-	if(twoColor & any(dat < 0)) stop("[ERROR] All values must be non-negative when invertSet is used.") 
-
-	if(twoColor) names(invertSet) <- rownames(x)
-
-	plot_plates <- lapply(colnames(dat), function(i) {
-
-		# Combine plate layout with barcode read counts
-		my_plates <- plates[,c("row", "column", "plate")]
-		my_plates$value <- dat[barcodes, as.character(i)]
-
-		if(twoColor)	{
-			my_plates$invert <- invertSet[barcodes]
-			my_plates$invert[is.na(my_plates$invert)] <- FALSE
-		}
-
-		# split by plate
-		tmp <- split.data.frame(my_plates, my_plates$plate)
-
-		# skip plates where all wells are NA (NA means not present in the dat matrix at all)
-		dropPlates <- sapply(tmp, function(j) all(is.na(j$value)))
-		
-		# combine the remaining plates in one matrix
-		do.call(rbind, tmp[!dropPlates])
-	})
-	
-	names(plot_plates) <- colnames(dat)
-
-	#-- Plot the read counts in the plate layout
-	pdf(paste0(fileName, ".pdf"))
-	
-	print_plates <- list()
-
-	for (i in 1:length(plot_plates)) {
-
-		x <- plot_plates[[i]]
-
-		#----- Generate matrices for excel
-		if(twoColor) x$invert <- NULL
-		
-		each_plate <- split(x, x$plate)
-		each_plate <- each_plate[sapply(each_plate, nrow) > 0] 
-
-		each_matrix <- lapply(names(each_plate), function(i) {
-			x <- each_plate[[i]]
-			my_plate <- dcast(row ~ column, data = x, value.var = "value", fill = 0, drop = FALSE)
-			my_plate <- my_plate[order(as.character(my_plate[,1])), ]
-			colnames(my_plate)[1] <- i
-			rbind(colnames(my_plate), as.matrix(my_plate), rep("", ncol(my_plate)))
-		})
-		each_matrix[[1]]
-
-		all_matrices <- as.data.frame(do.call(rbind, each_matrix))
-		all_matrices[,-1] <- apply(all_matrices[,-1], 2, as.numeric)
-
-		#----- Store matrices in a list
-		print_plates[[i]] <- all_matrices
-
-		# ---- Skip plotting if an akey has values in less than 20 wells
-		if( sum(x[,"value"] != 0, na.rm = TRUE) < skip) { next }
-
-		x <- plot_plates[[i]]
-		
-		if(log) x$value <- log10(x$value + 1)
-		if(twoColor) x$value[x$invert] <- - x$value[x$invert]
-
-		message("\nAKEY", names(plot_plates)[i])
-		
-		#---- Generate plot
-		p <- ggplot(data = x, aes(x = column, y = row, fill = value)) +
-			facet_wrap(~plate, ncol = 2) + geom_tile() +
-			ggtitle(names(plot_plates)[i]) +
-			theme(axis.text=element_text(size=5),
-			text = element_text(size=6), legend.text=element_text(size=5)
-			)
-
-		if(twoColor) {
-			myBreaks <- myLabels <- pretty(abs(x$value))
-			maxValue <- max(abs(x$value), na.rm = TRUE)
-		} else {
-			myBreaks <- myLabels <- pretty(x$value)
-			maxValue <- max(abs(x$value), na.rm = TRUE)
-		}
-
-		if(log) {
-
-			maxValue <- max(abs(x$value), na.rm = TRUE)
-			maxValue <- max(1, maxValue)
-
-			myBreaks <- 1:(1+ceiling(maxValue))
-			myLabels  <- 10^(abs(myBreaks))
-			myBreaks <- log10(myLabels - 1)
-
-			myBreaks <- c(0, myBreaks)
-			myLabels <- c(0, myLabels)
-		}
-
-		if(twoColor) {
-			myBreaks <- myBreaks[myBreaks!=0]
-			myBreaks  <- c(rev(-myBreaks), 0, myBreaks)
-			
-			myLabels <- myLabels[myLabels!=0]
-			myLabels <-  c(rev(myLabels), 0, myLabels)
-
-			myLabels <- as.character(myLabels)
-			myLabels[1] <- "Not in panel"
-			myLabels[length(myLabels)] <- "In panel"
-
-			legend_name <- paste0("in\npanel\n\n\n", ValueName, "\n\n\nnot in\npanel")
-			# cols <- c(scales::muted("red"), "grey85", scales::muted("blue"))
-			# key_limits <- c(-ceiling(maxValue), ceiling(maxValue))
-
-		} else {
-			
-			legend_name <- ValueName
-
-		}
-
-		if(symmetric) {
-
-			cols <- c(scales::muted("red"), "grey85", scales::muted("blue"))
-			key_limits <- c(-ceiling(maxValue), ceiling(maxValue))
-		
-		} else {
-
-			cols <- c("grey85", scales::muted("blue"))
-			key_limits <- c(0, ceiling(maxValue))
-		}
-
-			message("breaks: ", paste(myBreaks, collapse = ", "))
-			message("labels: ", paste(myLabels, collapse = ", "))
-			message("maxValue: ", maxValue)
-			message("limits: ", paste(key_limits, collapse = ", "))
-
-		p <- p + scale_fill_gradientn(
-				name = legend_name,
-				colours = cols,
-				na.value = "grey85",
-                breaks = myBreaks,
-                labels = myLabels,
-                limits = key_limits
-                )
-		p <- p + guides(fill = guide_colorbar( barheight = 20, title.position = "left", title.hjust = 0.5, draw.ulim = FALSE, draw.llim = FALSE))	
-		p <- p + theme(panel.grid.minor = element_blank(), 
-			       panel.grid.major = element_blank(), 
-			       panel.background = element_blank(),
-		               text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
-		)
-	
-
-		#----- Make plot		
-		print(p)
-
-	}
-
-	dev.off()
-
-	#----- Print all matrices to excel sheets
-	names(print_plates) <- names(plot_plates)
-	write.xlsx(print_plates, file = paste0(fileName, ".xlsx"), colNames = FALSE)
-
-	invisible(plot_plates)
-
+  x <- as.data.frame(x)
+  
+  barcodes <- plates[ ,"value"]
+  
+  # check that all barcodes are in the plates
+  problemRows <- rowSums(x)>0 & ! rownames(x) %in% barcodes
+  absent <- rownames(x[problemRows, , drop = FALSE])
+  counts <-  rowSums(x[problemRows, , drop = FALSE])
+  if(any(problemRows )) message("WARNING: Some barcodes found in data were not present in the supplied barcode plate layout: ",
+                                paste(
+                                  paste0(
+                                    apply(
+                                      data.frame(absent, counts)[rev(order(counts)),],
+                                      1,
+                                      paste0,
+                                      collapse = " ("
+                                    ),
+                                    " reads)"
+                                  ),
+                                  collapse = ", "
+                                )
+  )
+  
+  if(addSummaries) {
+    dat <- cbind(x, sum_of_all = rowSums(x), present_in_any = rowSums(x != 0))
+  } else {
+    dat <- cbind(x)
+  }
+  
+  if(log & any(dat < 0)) stop("[ERROR] All values must be non-negative when log = TRUE.") 
+  
+  if(log) symmetric <- FALSE   # if log scale, scales shouldn't be symmetri around zero 
+  
+  twoColor <- !missing(invertSet)
+  
+  if(twoColor) symmetric <- TRUE # if two colors are used (with invertSet) the scale should be symmetric around zero, to ensure that values = 0 will appear grey
+  
+  if(twoColor & any(dat < 0)) stop("[ERROR] All values must be non-negative when invertSet is used.") 
+  
+  if(twoColor) names(invertSet) <- rownames(x)
+  
+  plot_plates <- lapply(colnames(dat), function(i) {
+    
+    # Combine plate layout with barcode read counts
+    my_plates <- plates[,c("row", "column", "plate")]
+    my_plates$value <- dat[barcodes, as.character(i)]
+    
+    if(twoColor)	{
+      my_plates$invert <- invertSet[barcodes]
+      my_plates$invert[is.na(my_plates$invert)] <- FALSE
+    }
+    
+    # split by plate
+    tmp <- split.data.frame(my_plates, my_plates$plate)
+    
+    # skip plates where all wells are NA (NA means not present in the dat matrix at all)
+    dropPlates <- sapply(tmp, function(j) all(is.na(j$value)))
+    
+    # combine the remaining plates in one matrix
+    do.call(rbind, tmp[!dropPlates])
+  })
+  
+  names(plot_plates) <- colnames(dat)
+  
+  #-- Plot the read counts in the plate layout
+  pdf(paste0(fileName, ".pdf"))
+  
+  print_plates <- list()
+  
+  for (i in 1:length(plot_plates)) {
+    
+    x <- plot_plates[[i]]
+    
+    #----- Generate matrices for excel
+    if(twoColor) x$invert <- NULL
+    
+    each_plate <- split(x, x$plate)
+    each_plate <- each_plate[sapply(each_plate, nrow) > 0] 
+    
+    each_matrix <- lapply(names(each_plate), function(i) {
+      x <- each_plate[[i]]
+      my_plate <- reshape2::dcast(row ~ column, data = x, value.var = "value", fill = 0, drop = FALSE)
+      my_plate <- my_plate[order(as.character(my_plate[,1])), ]
+      colnames(my_plate)[1] <- i
+      rbind(colnames(my_plate), as.matrix(my_plate), rep("", ncol(my_plate)))
+    })
+    each_matrix[[1]]
+    
+    all_matrices <- as.data.frame(do.call(rbind, each_matrix))
+    all_matrices[,-1] <- apply(all_matrices[,-1], 2, as.numeric)
+    
+    #----- Store matrices in a list
+    print_plates[[i]] <- all_matrices
+    
+    # ---- Skip plotting if an akey has values in less than 20 wells
+    if( sum(x[,"value"] != 0, na.rm = TRUE) < skip) { next }
+    
+    x <- plot_plates[[i]]
+    
+    if(log) x$value <- log10(x$value + 1)
+    if(twoColor) x$value[x$invert] <- - x$value[x$invert]
+    
+    message("\nAKEY", names(plot_plates)[i])
+    
+    #---- Generate plot
+    p <- ggplot(data = x, aes(x = column, y = row, fill = value)) +
+      facet_wrap(~plate, ncol = 2) + geom_tile() +
+      ggtitle(names(plot_plates)[i]) +
+      theme(axis.text=element_text(size=5),
+            text = element_text(size=6), legend.text=element_text(size=5)
+      )
+    
+    if(twoColor) {
+      myBreaks <- myLabels <- pretty(abs(x$value))
+      maxValue <- max(abs(x$value), na.rm = TRUE)
+    } else {
+      myBreaks <- myLabels <- pretty(x$value)
+      maxValue <- max(abs(x$value), na.rm = TRUE)
+    }
+    
+    if(log) {
+      
+      maxValue <- max(abs(x$value), na.rm = TRUE)
+      maxValue <- max(1, maxValue)
+      
+      myBreaks <- 1:(1+ceiling(maxValue))
+      myLabels  <- 10^(abs(myBreaks))
+      myBreaks <- log10(myLabels - 1)
+      
+      myBreaks <- c(0, myBreaks)
+      myLabels <- c(0, myLabels)
+    }
+    
+    if(twoColor) {
+      myBreaks <- myBreaks[myBreaks!=0]
+      myBreaks  <- c(rev(-myBreaks), 0, myBreaks)
+      
+      myLabels <- myLabels[myLabels!=0]
+      myLabels <-  c(rev(myLabels), 0, myLabels)
+      
+      myLabels <- as.character(myLabels)
+      myLabels[1] <- "Not in panel"
+      myLabels[length(myLabels)] <- "In panel"
+      
+      legend_name <- paste0("in\npanel\n\n\n", ValueName, "\n\n\nnot in\npanel")
+      # cols <- c(scales::muted("red"), "grey85", scales::muted("blue"))
+      # key_limits <- c(-ceiling(maxValue), ceiling(maxValue))
+      
+    } else {
+      
+      legend_name <- ValueName
+      
+    }
+    
+    if(symmetric) {
+      
+      cols <- c(scales::muted("red"), "grey85", scales::muted("blue"))
+      key_limits <- c(-ceiling(maxValue), ceiling(maxValue))
+      
+    } else {
+      
+      cols <- c("grey85", scales::muted("blue"))
+      key_limits <- c(0, ceiling(maxValue))
+    }
+    
+    message("breaks: ", paste(myBreaks, collapse = ", "))
+    message("labels: ", paste(myLabels, collapse = ", "))
+    message("maxValue: ", maxValue)
+    message("limits: ", paste(key_limits, collapse = ", "))
+    
+    p <- p + ggplot2::scale_fill_gradientn(
+      name = legend_name,
+      colours = cols,
+      na.value = "grey85",
+      breaks = myBreaks,
+      labels = myLabels,
+      limits = key_limits
+    )
+    p <- p + guides(fill = guide_colorbar( barheight = 20, title.position = "left", title.hjust = 0.5, draw.ulim = FALSE, draw.llim = FALSE))	
+    p <- p + theme(panel.grid.minor = element_blank(), 
+                   panel.grid.major = element_blank(), 
+                   panel.background = element_blank(),
+                   text = element_text(size=6), legend.text=element_text(size=5), legend.title = element_text(size=5), legend.key.size = unit(0.3, 'cm')
+    )
+    
+    
+    #----- Make plot		
+    print(p)
+    
+  }
+  
+  dev.off()
+  
+  #----- Print all matrices to excel sheets
+  names(print_plates) <- names(plot_plates)
+  write.xlsx(print_plates, file = paste0(fileName, ".xlsx"), colNames = FALSE)
+  
+  invisible(plot_plates)
+  
 }
 
