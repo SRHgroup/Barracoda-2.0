@@ -76,6 +76,8 @@ Upload a **tab-delimited file (no headers)** with the following format:
 
 **Example:**
 
+|                   |            |            |
+|-------------------|------------|------------|
 | A-Key_2OS_F1_01   | sampleA    | 1          |
 | A-Key_2OS_F1_02   | sampleB    | 1          |
 | A-Key_2OS_F1_03   | sampleX    | 2          |
