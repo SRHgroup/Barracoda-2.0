@@ -3,7 +3,8 @@
 ---
 
 ### 1. Sequencing Data
-A **FASTQ** (or FASTA) file containing the raw sequencing reads.
+A **FASTQ** (or FASTA) file containing the raw sequencing reads. 
+FASTQ inputs can be `.fastq`, `.fastq.gz`, or (for Nanopore) a folder of `.fastq.gz` files.
 
 ---
 
@@ -14,7 +15,7 @@ A FASTA file with sequences of the sample identification tags.
 - Sequence names must match the keys in the *Sample Identification Table*.
 
 #### Forward Primer A
-The sequence of the forward primer from **Oligo-A**.
+The sequence of the **forward primer** from **Oligo-A**.
 
 #### N Sequence (UMI 1)
 Provide an integer specifying the length of the first UMI (unique molecular identifier).
@@ -35,7 +36,7 @@ Oligo_A2
 CAGAAAGCAGTCTCGTCGGTTCGAA
 ```
 
-**Note** Other sequence lengths besides 25 are supported.
+**Note:** Other sequence lengths besides 25 are supported.
 
 #### Annealing Region
 Paste the sequence of the annealing region.
@@ -57,13 +58,13 @@ Oligo_B2
 CAACCATTGATTGGGGACAACTGGG
 ```
 
-Other sequence lengths besides 25 are supported.
+**Note:** Other sequence lengths besides 25 are supported.
 
 #### N Sequence (UMI 2)
 Provide an integer specifying the length of the second UMI.
 
 #### Forward Primer B
-Paste the sequence of the reverse primer from **Oligo-B**  
+Paste the sequence of the **reverse primer** from **Oligo-B**.  
 (reverse strand/orientation relative to Primer A).
 
 ---
