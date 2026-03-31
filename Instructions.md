@@ -76,17 +76,16 @@ Upload a **tab-delimited file (no headers)** with the following format:
 
 **Example:**
 
-|                   |            |            |
-|-------------------|------------|------------|
-| A-Key_2OS_F1_01   | sampleA    | 1          |
-| A-Key_2OS_F1_02   | sampleB    | 1          |
-| A-Key_2OS_F1_03   | sampleX    | 2          |
-| A-Key_2OS_F1_04   | sampleY    | 2          |
-| A-Key_2OS_F1_05   | input      | 1          |
-| A-Key_2OS_F1_06   | input      | 1          |
-| A-Key_2OS_F1_07   | input      | 2          |
-| A-Key_2OS_F1_08   | input      | 2          |
-
+```
+A-Key_2OS_F1_01	sampleA	1
+A-Key_2OS_F1_02	sampleB	1
+A-Key_2OS_F1_03	sampleX	2
+A-Key_2OS_F1_04	sampleY	2
+A-Key_2OS_F1_05	input	1
+A-Key_2OS_F1_06	input	1
+A-Key_2OS_F1_07	input	2
+A-Key_2OS_F1_08	input	2
+```
 
 **Important:**
 - `key` must match sequence names in the *Sample Identification Tag* FASTA file  
