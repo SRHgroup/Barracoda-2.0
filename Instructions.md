@@ -26,13 +26,14 @@ Upload a FASTA file containing the 25-mer oligonucleotide sequences from **Oligo
 
 **Example:**
 
+```
 Oligo_A1
 CGAGGGCAATGGTTAACTGACACGT
 Oligo_A2
 CAGAAAGCAGTCTCGTCGGTTCGAA
+```
 
-
-> Other sequence lengths besides 25 are supported.
+**Note** Other sequence lengths besides 25 are supported.
 
 #### Annealing Region
 Paste the sequence of the annealing region.
@@ -47,11 +48,12 @@ Upload a FASTA file containing 25-mer sequences from **Oligo B**.
 
 **Example:**
 
+```
 Oligo_B1
 GCCTGTAGTCCCACGCGATCTAACA
 Oligo_B2
 CAACCATTGATTGGGGACAACTGGG
-
+```
 
 > Other sequence lengths besides 25 are supported.
 
@@ -72,14 +74,15 @@ Upload a **tab-delimited file (no headers)** with the following format:
 
 **Example:**
 
-A-Key_2OS_F1_01	sampleA	1
-A-Key_2OS_F1_02	sampleB	1
-A-Key_2OS_F1_03	sampleX	2
-A-Key_2OS_F1_04	sampleY	2
-A-Key_2OS_F1_05	input	1
-A-Key_2OS_F1_06	input	1
-A-Key_2OS_F1_07	input	2
-A-Key_2OS_F1_08	input	2
+|-------------------|------------|------------|
+| A-Key_2OS_F1_01   | sampleA    | 1          |
+| A-Key_2OS_F1_02   | sampleB    | 1          |
+| A-Key_2OS_F1_03   | sampleX    | 2          |
+| A-Key_2OS_F1_04   | sampleY    | 2          |
+| A-Key_2OS_F1_05   | input      | 1          |
+| A-Key_2OS_F1_06   | input      | 1          |
+| A-Key_2OS_F1_07   | input      | 2          |
+| A-Key_2OS_F1_08   | input      | 2          |
 
 
 **Important:**
@@ -98,9 +101,9 @@ A-Key_2OS_F1_08	input	2
 
 Upload a **tab-delimited file with headers** containing barcode annotations.
 
-> Or upload a **Microsoft Excel workbook**, where:
-> - Each sheet is an annotation table  
-> - Sheet names must match experiment names from the sample identification table  
+Or upload a **Microsoft Excel workbook**, where:
+- Each sheet is an annotation table  
+- Sheet names must match experiment names from the sample identification table  
 
 **Requirements:**
 - First column: barcode name (e.g., `A1B2`)  
@@ -109,11 +112,13 @@ Upload a **tab-delimited file with headers** containing barcode annotations.
 
 **Example:**
 
-Barcode HLA allele Peptide Sequence
-A7B1 HLA-A0201 707-AP RVAALARDAP
-A7B2 HLA-A0201 ATIC (AICRT) RLDFNLIRV
-A7B3 HLA-A0201 ATIC (AICRT) MVYDLYKTL
+| Barcode | HLA allele | Peptide        | Sequence   |
+|---------|------------|----------------|------------|
+| A7B1    | HLA-A0201  | 707-AP         | RVAALARDAP |
+| A7B2    | HLA-A0201  | ATIC (AICRT)   | RLDFNLIRV  |
+| A7B3    | HLA-A0201  | ATIC (AICRT)   | MVYDLYKTL  |
 
+---
 
 ### 5. Barcode Plate Setups (Optional)
 
