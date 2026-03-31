@@ -62,6 +62,7 @@ Barracoda can run using either Illumina/IonTorrent or Nanopore input data
 conda activate barracoda_env
 ./barracoda-2.0.sh -m data/Nanopore_data/sample_identification.xlsx -a data/Nanopore_data/barcode_annotation.xlsx -A data/Nanopore_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/Nanopore_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/Nanopore_data/EpitopeTagB.fasta -G 6 -H CAATCTTGAGCGTGACTTAAG -f data/Nanopore_data/Nanopore_data -o test_results/Nanopore_results -n
 ```
+
 Add the plate setup using `-p data/Nanopore_data/barcode-plate-setup.xlsx` (optional)
 
 ### Run Barracoda-2.0 using IonTorrent data 
@@ -71,5 +72,14 @@ conda activate barracoda_env
 ```
 
 Add the plate setup using `-p data/IonTorrent_data/barcode-plate-setup.xlsx` (optional)
+
+
+# Plot Results
+
+The script `plot_results.R` can be used as an example of how to visualize the results.
+Example plots produced using this script can be found in the `plots/` folder.
+
+
+
 
 
