@@ -1,18 +1,18 @@
 # User instruction
 
 ### 1. Sequencing Data
-Upload a **FASTQ** (or FASTA) file containing the raw sequencing reads.
+A **FASTQ** (or FASTA) file containing the raw sequencing reads.
 
 ---
 
 ### 2. Barcode Information
 
 #### Sample Identification Tag
-Upload a FASTA file with sequences of the sample identification tags.  
+A FASTA file with sequences of the sample identification tags.  
 - Sequence names must match the keys in the *Sample Identification Table*.
 
 #### Forward Primer A
-Paste the sequence of the forward primer from **Oligo-A**.
+The sequence of the forward primer from **Oligo-A**.
 
 #### N Sequence (UMI 1)
 Provide an integer specifying the length of the first UMI (unique molecular identifier).
@@ -68,9 +68,7 @@ Paste the sequence of the reverse primer from **Oligo-B**
 
 Upload a **tab-delimited file (no headers)** with the following format:
 
-
 <key> <sample name> <experiment>
-
 
 **Example:**
 
@@ -100,7 +98,7 @@ A-Key_2OS_F1_08	input	2
 
 Upload a **tab-delimited file with headers** containing barcode annotations.
 
-> 🆕 You can also upload a **Microsoft Excel workbook**, where:
+> Or upload a **Microsoft Excel workbook**, where:
 > - Each sheet is an annotation table  
 > - Sheet names must match experiment names from the sample identification table  
 
@@ -125,6 +123,7 @@ This enables visualization of results as heatmaps that mimic plate layout, helpi
 - Experimental errors  
 - Spill-over between wells  
 - Barcode misplacement  
-Example of excel sheet:
 
+Example of excel sheet:
+![Plate Instruction](images/plates_instructions.png)
 
