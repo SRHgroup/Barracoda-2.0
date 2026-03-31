@@ -1,5 +1,7 @@
 # User instruction
 
+---
+
 ### 1. Sequencing Data
 A **FASTQ** (or FASTA) file containing the raw sequencing reads.
 
@@ -55,7 +57,7 @@ Oligo_B2
 CAACCATTGATTGGGGACAACTGGG
 ```
 
-> Other sequence lengths besides 25 are supported.
+Other sequence lengths besides 25 are supported.
 
 #### N Sequence (UMI 2)
 Provide an integer specifying the length of the second UMI.
@@ -74,7 +76,6 @@ Upload a **tab-delimited file (no headers)** with the following format:
 
 **Example:**
 
-|-------------------|------------|------------|
 | A-Key_2OS_F1_01   | sampleA    | 1          |
 | A-Key_2OS_F1_02   | sampleB    | 1          |
 | A-Key_2OS_F1_03   | sampleX    | 2          |
@@ -109,6 +110,7 @@ Or upload a **Microsoft Excel workbook**, where:
 - First column: barcode name (e.g., `A1B2`)  
 - Additional columns: optional metadata (e.g., peptide, sequence)  
 - Avoid special symbols (e.g., Greek letters, URLs)
+
 
 **Example:**
 
