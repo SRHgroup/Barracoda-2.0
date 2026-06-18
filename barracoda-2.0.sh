@@ -191,12 +191,17 @@ ExitIfErrors() {
 # surfaces it to the user via ShowErrors, and stops the run.
 #####################################################################
 
+# Print a message to BOTH the user channel (FD3) and the log file (stdout) in full.
+# ShowErrors only scrapes the single [ERROR] line from the log, so multi-line
+# messages routed through it get truncated; Echo3 sends the whole message.
+Echo3() {
+   echo -e "$@" >&3
+   echo -e "$@"
+}
+
 # Print a fatal, user-facing error (message already contains the [ERROR] text) and stop.
-# The full multi-line message is sent straight to the user (FD3) and recorded in
-# the log, so the path and the "what to provide" guidance are not truncated.
 InputError() {
-   echo -e "$1" >&3
-   echo -e "$1"
+   Echo3 "$1"
    exit
 }
 
@@ -236,8 +241,7 @@ Header 'Required arguments parsed to Barracoda'
 RequiredOpt() {
 	var=$(echo "$1" | sed 's/var=//g')
 	if [ -z "$var" ] ; then
-		echo $' [ERROR] Script terminated because option' $2 $'is missing. Please provide the' $3 $'for this to work.\n\nCheck out the help page by using the -h option.\n\n';
-		ShowErrors ;
+		Echo3 $' [ERROR] Script terminated because option' $2 $'is missing. Please provide the' $3 $'for this to work.\n\nCheck out the help page by using the -h option.\n\n';
 		exit
 	else
 		echo $' The' $2 $'option was succesfully parsed to barracoda. The' $3 $'is defined as:\n       ' $var
@@ -420,8 +424,7 @@ Header 'Checking input data'
 echo -e $' Checking if sequences only contain base pair letters (A, C, T, G) ...'
 for seq in $a_forward_primer_seq"_forward primer A" $annealing_seq"_annealing region" $b_forward_primer_seq"_forward primer B" ; do
 	if [[ ${seq%_*} =~ ^[ACTG]+$ ]] ; then : ; else 
-		echo -e $'  -> [ERROR] The' ${seq#*_} $'sequence contains other characters than A, C, T and G!!!!! The program was terminated!!\n Please provide sequences (options -B, -E and -H) only containing base pair letters (A, C, T, G)...\n\n' ; 
-		ShowErrors ; 
+		Echo3 $'  -> [ERROR] The' ${seq#*_} $'sequence contains other characters than A, C, T and G!!!!! The program was terminated!!\n Please provide sequences (options -B, -E and -H) only containing base pair letters (A, C, T, G)...\n\n' ; 
 		exit ; fi
 done
 echo -e $'  -> The forward A primer, annealing region and forward B primer sequences seem to be right..'
@@ -441,9 +444,8 @@ ExitIfErrors $r_logcheckinputdata
 echo -e $'\n Checking if a-keys in sample_id_table file exist in sample FASTA file ...'
 for a_key in $(cut -f1 $input_dir/sample_id_table.txt) ; do 
 	if grep -q $a_key $sample_id_tags_fasta ; then : ; else 
-		echo '  -> ' [ERROR] $a_key NOT found!!!!! ; 
-		echo -e $'\n The program was terminated!!\n Please provide a sample id table with a-keys of sample FASTA file ...\n\n' ; 
-		ShowErrors ;
+		Echo3 '  -> ' [ERROR] $a_key NOT found!!!!! ; 
+		Echo3 $'\n The program was terminated!!\n Please provide a sample id table with a-keys of sample FASTA file ...\n\n' ; 
 		exit ; fi
 done
 echo -e $'  -> All a-keys in sample_id_table matches headers in sample_id_tags_fasta..'
@@ -454,8 +456,7 @@ echo -e $'  -> All a-keys in sample_id_table matches headers in sample_id_tags_f
 echo -e $'\n Lengths and positions of sequences '
 CheckLengthFasta() {
         if [[ $(echo $1 | wc -w) == 1 ]] ; then : ; else 
-		echo -e $'  -> [ERROR] The' $2 $'FASTA file contains reads of different lengths.. The script was terminated because of a problem with the sequences (options -B, -E and -H)...\n\n' ; 
-		ShowErrors ;
+		Echo3 $'  -> [ERROR] The' $2 $'FASTA file contains reads of different lengths.. The script was terminated because of a problem with the sequences (options -B, -E and -H)...\n\n' ; 
 		exit ; fi
 }
 
@@ -506,16 +507,14 @@ fastx_format=$(head -n 1 ${seq_data_fastq} | cut -c1-1) # this will extract the 
 fastx_suffix='fastq' # can be either 'fastq' or 'fasta'. Changed to 'fasta' if the first line in the sequencing data file if this is a ">" 
 if [[ $fastx_format == "@" ]] ; then echo -e $'  -> The sequencing file is FASTQ file, we can carry on :)' ;
         elif [[ $fastx_format == ">" ]] ; then fastx_suffix='fasta' ; echo -e $'  -> The sequencing file is a FASTA file, we can carry on :)' ;
-        else echo -e $'  -> [ERROR] The sequencing file is neither FASTQ nor FASTA format!!! The program was terminated!\n\n Please input a sequencing file that is either FASTQ or FASTA!!!\n' ; 
-		ShowErrors ; 
+        else Echo3 $'  -> [ERROR] The sequencing file is neither FASTQ nor FASTA format!!! The program was terminated!\n\n Please input a sequencing file that is either FASTQ or FASTA!!!\n' ;
 		exit ;
 fi
 
 # Check if sample id table file is xlsx or txt
 if [ ${sample_id_table_file##*.} = "xlsx" ] ; then echo -e $'  -> The sample id table is XLSX, we can carry on :)' ;
 	elif [ ${sample_id_table_file##*.} = "txt" ] ; then echo -e $'  -> The sample id table is TXT, we can carry on :)' ;
-	else echo -e $'  -> [ERROR] The sample id table is neither XLSX nor TXT format!!! The program was terminated!\n\n Please input a sample id table i that is either XLSX or TXT!!!\n' ; 
-		ShowErrors ;
+	else Echo3 $'  -> [ERROR] The sample id table is neither XLSX nor TXT format!!! The program was terminated!\n\n Please input a sample id table i that is either XLSX or TXT!!!\n' ; 
 		exit ;
 fi
 
@@ -731,8 +730,7 @@ checkFile() {
         if [[ $(wc -l <$1) -ge 2 ]]; then
                 echo $' The' $2 $' file was created succesfully.\n'
         else
-                echo $' [ERROR] Script terminated because' $2 $'was not generated!!!\n';
-                ShowErrors ;
+                Echo3 $' [ERROR] Script terminated because' $2 $'was not generated!!!\n';
                 exit
         fi
 
