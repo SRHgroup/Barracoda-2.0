@@ -160,21 +160,69 @@ Header() {
 	echo -e $'\n\n' $1 '\n' $(date +'Timestamp: %D at %T') '\n'
 }
 
-# show warnings and errors function 
+# show warnings and errors function
 ShowErrors() {
-   warnmsg=`grep -h WARNING $log_dir/*.log $LogFile` # -h hide filename path
-   errormsg=`grep -hi "^ERROR" $log_dir/*.log $LogFile` # -i for case-insensitive
+   # Build the list of files to scan. nullglob makes the *.log pattern expand to
+   # nothing (instead of staying literal) when the logs dir is still empty, which
+   # avoids "grep: ...*.log: No such file or directory" noise on early exits.
+   shopt -s nullglob
+   local logfiles=("$log_dir"/*.log "$LogFile")
+   shopt -u nullglob
+   warnmsg=`grep -hi "WARNING" "${logfiles[@]}" 2>/dev/null`        # -h hide filename path
+   errormsg=`grep -hiE '\[ERROR\]|^Error' "${logfiles[@]}" 2>/dev/null` # match the script's [ERROR] marker and tool "Error" lines
    msg="${warnmsg}${errormsg}"
    if [[ $msg != "" ]] ; then
-      echo $"${msg}" >&3
+      echo "${msg}" >&3
    fi
 }
 
 ExitIfErrors() {
-    errormsg=`grep -hi "^ERROR" $1` # -h hide filename path, -i for case-insensitive
+    errormsg=`grep -hiE '\[ERROR\]|^Error' "$1" 2>/dev/null` # match the script's [ERROR] marker and tool "Error" lines
     if [[ $errormsg != "" ]] ; then
-       echo $"${errormsg}" >&3
+       echo "${errormsg}" >&3
        exit
+   fi
+}
+
+#####################################################################
+# Input-file validation helpers
+#
+# Each emits an explicit [ERROR] (naming the option and what is expected),
+# surfaces it to the user via ShowErrors, and stops the run.
+#####################################################################
+
+# Print a fatal, user-facing error (message already contains the [ERROR] text) and stop.
+InputError() {
+   echo -e "$1"
+   ShowErrors
+   exit
+}
+
+# Verify a file exists and is not empty.   $1=path  $2=option flag  $3=human description
+CheckFilePresent() {
+   if [ ! -f "$1" ] ; then
+      InputError " [ERROR] The $3 (option $2) could not be found at:\n        $1\n Please make sure the file exists / was uploaded, then try again.\n"
+   fi
+   if [ ! -s "$1" ] ; then
+      InputError " [ERROR] The $3 (option $2) is empty:\n        $1\n Please provide a non-empty $3.\n"
+   fi
+}
+
+# Verify a file is FASTA (first non-blank line starts with '>').   $1=path  $2=option flag  $3=human description
+CheckFastaFormat() {
+   local first
+   first=$(grep -m1 '[^[:space:]]' "$1" | cut -c1)
+   if [ "$first" != ">" ] ; then
+      InputError " [ERROR] The $3 (option $2) is not in FASTA format:\n        $1\n A FASTA file must start with a header line beginning with '>', for example:\n        >name\n        ACGT...\n Please provide the $3 as a FASTA file.\n"
+   fi
+}
+
+# Verify a file is an Excel .xlsx workbook.   $1=path  $2=option flag  $3=human description
+CheckXlsxFormat() {
+   local ftype
+   ftype=$(file -b "$1")
+   if [[ "$ftype" == *Microsoft* ]] || [[ "$ftype" == *Excel* ]] || [[ "$ftype" == *OOXML* ]] || [[ "$ftype" == *"Zip archive"* ]] ; then : ; else
+      InputError " [ERROR] The $3 (option $2) is not a valid Excel (.xlsx) file (detected type: $ftype):\n        $1\n Please provide the $3 as an .xlsx workbook.\n"
    fi
 }
 
@@ -184,8 +232,8 @@ ExitIfErrors() {
 Header 'Required arguments parsed to Barracoda'
 
 RequiredOpt() {
-	var=$(echo $1 | sed 's/var=//g')
-	if [ -z $var ] ; then
+	var=$(echo "$1" | sed 's/var=//g')
+	if [ -z "$var" ] ; then
 		echo $' [ERROR] Script terminated because option' $2 $'is missing. Please provide the' $3 $'for this to work.\n\nCheck out the help page by using the -h option.\n\n';
 		ShowErrors ;
 		exit
@@ -205,6 +253,50 @@ RequiredOpt "var=${annealing_seq}" "-E" "annealing region sequence"
 RequiredOpt "var=${b_epitope_tag_fasta}" "-F" "epitope tag B FASTA file"
 RequiredOpt "var=${b_end_n_seq_length}" "-G" "N-sequence length (B end)"
 RequiredOpt "var=${b_forward_primer_seq}" "-H" "forward primer B sequence"
+
+
+#####################################################################
+#####################################################################
+# Validate input files (existence, non-empty, and correct format)
+# This runs before any file is copied or processed, so a wrong/empty/incorrect
+# input file stops the run immediately with a clear, specific message.
+Header 'Validating input files'
+
+# Sequencing data (-f): FASTA or FASTQ, optionally zipped.
+# Existence/emptiness checked here; FASTA/FASTQ format verified further below
+# (after any unzip / Nanopore cleaning).
+CheckFilePresent "$seq_data_fastq" "-f" "sequencing data file (FASTA or FASTQ)"
+
+# Sample identification table (-m): XLSX or TXT.
+CheckFilePresent "$sample_id_table_file" "-m" "sample identification table"
+sm_type=$(file -b "$sample_id_table_file")
+if [[ "$sm_type" == *Microsoft* ]] || [[ "$sm_type" == *Excel* ]] || [[ "$sm_type" == *OOXML* ]] || [[ "$sm_type" == *"Zip archive"* ]] || [[ "$sm_type" == *ASCII* ]] || [[ "$sm_type" == *text* ]] ; then : ; else
+   InputError " [ERROR] The sample identification table (option -m) is neither an Excel (.xlsx) nor a text (.txt) file (detected type: $sm_type):\n        $sample_id_table_file\n Please provide the sample identification table as an .xlsx workbook or a tab-separated .txt file.\n"
+fi
+
+# Barcode annotations (-a): XLSX
+CheckFilePresent "$barcode_annotations_xlsx" "-a" "barcode annotations table"
+CheckXlsxFormat  "$barcode_annotations_xlsx" "-a" "barcode annotations table"
+
+# Sample identification tags (-A): FASTA
+CheckFilePresent "$sample_id_tags_fasta" "-A" "sample identification tag FASTA file"
+CheckFastaFormat "$sample_id_tags_fasta" "-A" "sample identification tag FASTA file"
+
+# Epitope tag A (-D): FASTA
+CheckFilePresent "$a_epitope_tag_fasta" "-D" "epitope tag A FASTA file"
+CheckFastaFormat "$a_epitope_tag_fasta" "-D" "epitope tag A FASTA file"
+
+# Epitope tag B (-F): FASTA
+CheckFilePresent "$b_epitope_tag_fasta" "-F" "epitope tag B FASTA file"
+CheckFastaFormat "$b_epitope_tag_fasta" "-F" "epitope tag B FASTA file"
+
+# Barcode plate setup (-p): optional, XLSX when provided
+if [ -n "$barcode_plate_setup_xlsx" ] ; then
+   CheckFilePresent "$barcode_plate_setup_xlsx" "-p" "barcode plate setup table"
+   CheckXlsxFormat  "$barcode_plate_setup_xlsx" "-p" "barcode plate setup table"
+fi
+
+echo -e $'  -> All provided input files exist, are non-empty, and have the expected format..'
 
 
 #####################################################################

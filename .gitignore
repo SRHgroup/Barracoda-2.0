@@ -1,0 +1,8 @@
+# Local test data downloaded from the server (not for version control)
+test_data/
+
+# Run artifacts (job folders created by the pipeline)
+store.barracoda_*/
+
+# macOS
+.DS_Store
