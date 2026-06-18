@@ -192,9 +192,11 @@ ExitIfErrors() {
 #####################################################################
 
 # Print a fatal, user-facing error (message already contains the [ERROR] text) and stop.
+# The full multi-line message is sent straight to the user (FD3) and recorded in
+# the log, so the path and the "what to provide" guidance are not truncated.
 InputError() {
+   echo -e "$1" >&3
    echo -e "$1"
-   ShowErrors
    exit
 }
 
