@@ -14,6 +14,10 @@ sample_map    <- cArgs[1]
 sample_map_out    <- cArgs[2]
 annotations <- cArgs[3]
 
+# -c / sum_of_counts: when set, the same sample name may be intentionally
+# assigned to several a-keys so their counts get summed in summarize-barcodes.R.
+sum_of_counts <- isTRUE(toupper(as.character(cArgs[4])) == "TRUE")
+
 
 ################################
 ###    SAMPLE ID TABLE       ###
@@ -30,8 +34,12 @@ sid$akey <- sid$akey_num
 sid$akey_num <- as.numeric(sub("^.*_(\\d+)$", "\\1", sid$akey_num)) 
 exp_map <- lapply(split(sid, sid$experiment), function(x) setNames(x[,2], x[,1]))
 
-# Read sample id table and checks for duplicated samples or A-keys (within the same experiment)
-any.duplications(sid, type='sample', file=sample_map_out)
+# Read sample id table and checks for duplicated samples or A-keys (within the same experiment).
+# With -c (sum_of_counts), duplicated sample names are intentional (merged & summed), so skip
+# that check. A literally repeated a-key is always a data error, so keep checking it.
+if (!sum_of_counts) {
+  any.duplications(sid, type='sample', file=sample_map_out)
+}
 any.duplications(sid, type='akey', file=sample_map_out)
 
 ################################

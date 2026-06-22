@@ -253,6 +253,42 @@ sampleList <- function(sid_map) {
 }
 
 
+## Sum read counts across duplicated samples (-c / sum_of_counts == TRUE)
+#
+# When several a-keys map to the same sample name (a "duplicated sample"),
+# sum their read counts into a single representative column - the first a-key
+# of each group - and drop the redundant columns. This is the alternative to
+# treating the duplicates as replicates that get averaged downstream.
+#
+# Unlike sampleList(), this also collapses the "input" sample, so the returned
+# map still carries an "input" entry that calcFoldChange() can find.
+#
+# mat, matUniq : read-count matrices (rows = barcodes, cols = a-keys)
+# sid_map      : named vector; names = a-keys (= matrix colnames), values = sample names
+# Returns a list with mat, matUniq and sid_map collapsed to one column / entry per sample.
+sumDuplicateSamples <- function(mat, matUniq, sid_map) {
+  # Group a-keys by sample name, preserving the order they first appear in
+  groups <- split(names(sid_map), factor(sid_map, levels = unique(sid_map)))
+
+  for (g in groups) {
+    if (length(g) > 1) {
+      rep_key <- g[1]
+      mat[, rep_key]     <- rowSums(mat[, g, drop = FALSE])
+      matUniq[, rep_key] <- rowSums(matUniq[, g, drop = FALSE])
+    }
+  }
+
+  # Keep the first a-key of each sample group
+  keep <- vapply(groups, function(g) g[1], character(1))
+
+  list(
+    mat     = mat[, keep, drop = FALSE],
+    matUniq = matUniq[, keep, drop = FALSE],
+    sid_map = sid_map[keep]
+  )
+}
+
+
 removeSamplesWithZeroReads <- function(samples, mat) {
   ## Check for samples with zero read counts ------------------------------
   ##  And remove them. Works on both vectors and lists of vectors.

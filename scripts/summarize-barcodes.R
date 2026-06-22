@@ -52,8 +52,9 @@ annotations <- cArgs[8]
 
 sum_of_counts <- cArgs[9]
 
-# set sum_of_counts to FALSE as default
-if (is.na(sum_of_counts)==TRUE) {sum_of_counts=FALSE}
+# Normalise to a real logical. Defaults to FALSE when absent (NA) and accepts
+# "TRUE"/"FALSE" in any case from the command line.
+sum_of_counts <- isTRUE(toupper(as.character(sum_of_counts)) == "TRUE")
 
 
 cat("file_in:", file_in, "\n")
@@ -65,6 +66,7 @@ cat("pepB.fa", pepB.fa, "\n")
 cat("NA_length", NA_length, "\n")
 cat("NB_length", NB_length, "\n")
 cat("annotations", annotations, "\n")
+cat("sum_of_counts", sum_of_counts, "\n")
 
 ###############################
 ###   READ AND PREPARE DATA  ###
@@ -200,6 +202,11 @@ WriteMultiSheetExcel(
 ### FOR EACH EXPERIMENT, SEPARATELY
 #
 
+# FDR threshold for calling enriched barcodes. Defined here (not inside the loop)
+# so it is always in scope for the cross-HLA combine step, even when every HLA
+# iteration of an experiment is skipped (e.g. all samples have zero reads).
+fdr <- 0.001
+
 for (i in names(exp_map)) {
 	print(paste('experiment:',i))
 	dir_out_tmp <- file.path(dir_out, paste0("experiment_", i))
@@ -258,50 +265,19 @@ for (i in names(exp_map)) {
         samples <- sampleList(my_samples)
 
 
-# 	# make sum of counts for duplicated experiments
-# 	if (sum_of_counts==TRUE) {
-# 	 print('sum_of_counts==TRUE')
-# 	 print(samples) 
-# 	 #i=0
-#          for (s in samples) {
-# 	   print(s)
-#           # i=i+1
-#            matUniq[,s[1]] <- as.matrix(rowSums(matUniq[,s]))
-#            print(matUniq)
-#            deselect <- s[s!= s[1]]
-# 	   print(deselect)
-#            matUniq <- matUniq[,!colnames(matUniq)==deselect]
-#            print(matUniq)
-#            #samples[i] <- s[1]
-#          }
-# 	i=0
-# 	for (s in samples) {
-# 	   print(s)	
-# 	   i=i+1
-#            mat[,s[1]] <- as.matrix(rowSums(mat[,s]))
-#            print(mat)
-#            deselect <- s[s!= s[1]]
-#            print(deselect)
-#            mat <- mat[,!colnames(mat)==deselect]
-#            print(mat)
-#            samples[i] <- s[1]
-#          }
-# 	print(class(my_samples))
-#         print(my_samples)
-#         print(samples)
-# 	my_samples <- my_samples[names(my_samples) %in% samples]
-# 	print("TRUE LOOP DONE")
-# 	}
-# 	print("my_samples new")
-# 	print(my_samples)
-# 	print("Samples")
-# 	print(samples)
-# 	
-# 	print("mat")
-# 	print(mat)
-# 	print("matUniq")
-# 	print(matUniq)
-	
+  	## SUM COUNTS FOR DUPLICATED SAMPLES (-c TRUE)
+  	## When several a-keys map to the same sample name, sum their read counts
+  	## into a single representative column instead of averaging them as replicates.
+  	## This also collapses the input sample, so my_samples keeps its "input" entry.
+  	if (sum_of_counts) {
+  	  message("sum_of_counts == TRUE: summing read counts for duplicated samples")
+  	  collapsed  <- sumDuplicateSamples(mat, matUniq, my_samples)
+  	  mat        <- collapsed$mat
+  	  matUniq    <- collapsed$matUniq
+  	  my_samples <- collapsed$sid_map
+  	  samples    <- sampleList(my_samples)
+  	}
+
   	if( h == "all" ) {
   
   	  # SAVE ALL READ COUNTS  (only your samples and barcodes)
@@ -382,7 +358,6 @@ for (i in names(exp_map)) {
           message("WARNING: the following sample ", sample_differences, " have been skipped for MHC ", h,".")
         }
   	
-  	fdr <- 0.001
   	enr <- findEnrichedBarcodes(fc$logFC, fc$FDR, fdr, matUniq)
   
   	

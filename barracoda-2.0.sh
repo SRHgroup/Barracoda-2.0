@@ -433,8 +433,8 @@ echo -e $'  -> The forward A primer, annealing region and forward B primer seque
 # Make checks in R
 echo -e $' Making checks in R '
 echo -e $'  -> Running read checkinputdata_script with following command line:'
-$R --vanilla --slave --args $sample_id_table_file $input_dir/sample_id_table.txt $barcode_annotations_xlsx < <( cat $function_script $checkinputdata_script ) > $r_logcheckinputdata 2>&1
-echo -e $'  \t' $R '--vanilla --slave --args' $sample_id_table_file $input_dir/sample_id_table.txt $barcode_annotations_xlsx  '< <(cat' $function_script $checkinputdata_script ') >' $r_logcheckinputdata '2>&1'
+$R --vanilla --slave --args $sample_id_table_file $input_dir/sample_id_table.txt $barcode_annotations_xlsx $sum_of_counts < <( cat $function_script $checkinputdata_script ) > $r_logcheckinputdata 2>&1
+echo -e $'  \t' $R '--vanilla --slave --args' $sample_id_table_file $input_dir/sample_id_table.txt $barcode_annotations_xlsx $sum_of_counts '< <(cat' $function_script $checkinputdata_script ') >' $r_logcheckinputdata '2>&1'
 
 ##### EXIT IF checks went wrong..
 ExitIfErrors $r_logcheckinputdata
@@ -770,7 +770,7 @@ echo -e $'  \t' $R '--vanilla --slave --args' $read_lengths_all $read_lengths_2o
 # Run summarize barcodes scripts
 echo -e $'  -> Running summarize barcodes with following command line'
 $R --vanilla --slave --args $merged_mapped_reads $sample_id_table_file $output_dir $a_epitope_tag_fasta $b_epitope_tag_fasta $a_end_n_seq_length $b_end_n_seq_length $barcode_annotations_xlsx $sum_of_counts < <(cat $function_script $summarize_script ) > $r_log_sum 2>&1
-echo -e $'  \t' $R '--vanilla --slave --args' $merged_mapped_reads $sample_id_table_file $output_dir $a_epitope_tag_fasta $b_epitope_tag_fasta $a_end_n_seq_length $b_end_n_seq_length $barcode_annotations_xlsx '< <(cat' $function_script $summarize_script ') >' $r_log_sum '2>&1'
+echo -e $'  \t' $R '--vanilla --slave --args' $merged_mapped_reads $sample_id_table_file $output_dir $a_epitope_tag_fasta $b_epitope_tag_fasta $a_end_n_seq_length $b_end_n_seq_length $barcode_annotations_xlsx $sum_of_counts '< <(cat' $function_script $summarize_script ') >' $r_log_sum '2>&1'
 
 # Run pval results
 echo -e $'  -> Running read lengths scripts with following command line'
