@@ -255,31 +255,44 @@ sampleList <- function(sid_map) {
 
 ## Sum read counts across duplicated samples (-c / sum_of_counts == TRUE)
 #
-# When several a-keys map to the same sample name (a "duplicated sample"),
-# sum their read counts into a single representative column - the first a-key
-# of each group - and drop the redundant columns. This is the alternative to
-# treating the duplicates as replicates that get averaged downstream.
+# When several a-keys are deliberately given the SAME sample name, sum their
+# read counts into a single representative column (the first a-key of the group)
+# and drop the redundant columns.
 #
-# Unlike sampleList(), this also collapses the "input" sample, so the returned
-# map still carries an "input" entry that calcFoldChange() can find.
+# The "input" sample is left ALONE: its a-keys stay as separate replicates, exactly
+# as in a standard run. This is deliberate - "input" is spread across several a-keys
+# by convention in every experiment, so summing it would change the edgeR baseline
+# (normalisation + sample-vs-input comparison) for every experiment, even ones with
+# no intentional duplicate. Skipping it means experiments without a non-input
+# duplicate reproduce the standard analysis exactly, and only the samples the user
+# explicitly merged are affected. calcFoldChange() still finds "input" because all
+# its a-keys remain in the returned map.
 #
 # mat, matUniq : read-count matrices (rows = barcodes, cols = a-keys)
 # sid_map      : named vector; names = a-keys (= matrix colnames), values = sample names
-# Returns a list with mat, matUniq and sid_map collapsed to one column / entry per sample.
+# Returns mat, matUniq and sid_map with only non-input duplicate groups collapsed,
+# preserving the original column order.
 sumDuplicateSamples <- function(mat, matUniq, sid_map) {
-  # Group a-keys by sample name, preserving the order they first appear in
+  # Group a-keys by sample name
   groups <- split(names(sid_map), factor(sid_map, levels = unique(sid_map)))
 
-  for (g in groups) {
+  drop <- character(0)
+  for (nm in names(groups)) {
+    g <- groups[[nm]]
+
+    # Leave input replicates untouched (see note above)
+    if (nm == "input") next
+
     if (length(g) > 1) {
       rep_key <- g[1]
       mat[, rep_key]     <- rowSums(mat[, g, drop = FALSE])
       matUniq[, rep_key] <- rowSums(matUniq[, g, drop = FALSE])
+      drop <- c(drop, g[-1])   # the redundant a-keys that were summed in
     }
   }
 
-  # Keep the first a-key of each sample group
-  keep <- vapply(groups, function(g) g[1], character(1))
+  # Keep every a-key except the redundant duplicates, in the ORIGINAL order
+  keep <- setdiff(names(sid_map), drop)
 
   list(
     mat     = mat[, keep, drop = FALSE],

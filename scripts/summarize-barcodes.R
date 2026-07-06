@@ -266,9 +266,10 @@ for (i in names(exp_map)) {
 
 
   	## SUM COUNTS FOR DUPLICATED SAMPLES (-c TRUE)
-  	## When several a-keys map to the same sample name, sum their read counts
-  	## into a single representative column instead of averaging them as replicates.
-  	## This also collapses the input sample, so my_samples keeps its "input" entry.
+  	## When several a-keys are deliberately given the same sample name, sum their
+  	## read counts into a single representative column. The "input" sample is left
+  	## as separate replicates (see sumDuplicateSamples) so experiments without an
+  	## intentional duplicate reproduce the standard analysis exactly.
   	if (sum_of_counts) {
   	  message("sum_of_counts == TRUE: summing read counts for duplicated samples")
   	  collapsed  <- sumDuplicateSamples(mat, matUniq, my_samples)
