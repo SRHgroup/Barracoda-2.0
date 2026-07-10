@@ -1,19 +1,30 @@
-name: barracoda_env
+name: barracoda_web
+
+# Software pinned to match the ORIGINAL Barracoda web-server deployment, so that
+# results (esp. edgeR p-values / enrichment calls) are comparable to the original
+# runs rather than to whatever the latest packages happen to be.
+#
+# The production run log showed R 4.3.1 (/opt/R-4.3.1). Bioconductor - and therefore
+# edgeR and limma - is locked 1:1 to the R minor version, so pinning r-base to 4.3.1
+# recreates the edgeR era the original significant hits were called with.
+#
+# NOTE: the repo has NEVER recorded exact package versions (this file was unpinned in
+# every commit and there is no lock file), so only r-base is pinned from hard evidence
+# (the run log). edgeR/limma resolve to the R-4.3.1 Bioconductor release. To make this
+# EXACT, replace the edgeR/limma lines below with the web server's own versions:
+#   /opt/R-4.3.1/bin/Rscript -e 'for (p in c("edgeR","limma")) cat(p, as.character(packageVersion(p)), "\n")'
+# e.g.  - bioconductor-edger=4.0.16
+#       - bioconductor-limma=3.58.1
 
 channels:
   - conda-forge
   - bioconda
-  - defaults
 
 dependencies:
-  # bowtie2
-  - bowtie2
+  # --- the version anchor (from the web-server run log) ---
+  - r-base=4.3.1
 
-  # GNU parallel
-  - parallel
-
-  # R
-  - r-base
+  # R analysis stack (versions follow from r-base 4.3.1's Bioconductor release)
   - r-essentials
   - bioconductor-edger
   - bioconductor-limma
@@ -27,15 +38,20 @@ dependencies:
   - r-xlsx
   - r-squash
 
-  # Python
+  # bowtie2 + GNU parallel (alignment; note: does not affect p-values - counts are
+  # identical regardless, which is why logFC was unchanged)
+  - bowtie2
+  - parallel
+
+  # Python (nanopore cleaning)
   - python
   - regex
   - biopython
 
   # Perl
   - perl
-  - perl-app-cpanminus  # optional but very useful
+  - perl-app-cpanminus
 
   # Utilities
   - pip
-  - openjdk  # needed for xlsx
+  - openjdk  # needed for r-xlsx
