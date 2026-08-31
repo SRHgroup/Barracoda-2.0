@@ -12,7 +12,17 @@ barracoda_script_dir="${barracoda_dir}/scripts"
 #####################################################################
 
 # Define paths to R and python
-R="$(which R)"
+#
+# edgeR version selection (-V): Barracoda's edgeR results (p-values / enrichment
+# calls) depend on the edgeR version, so the R interpreter is chosen by -V:
+#   stable (default) -> reference R + edgeR (reproduces historical / web results)
+#   latest           -> newer R + edgeR
+# Point each at the R BINARY of its environment (edit here per host, or set the
+# BARRACODA_R_STABLE / BARRACODA_R_LATEST environment variables). Left empty,
+# 'stable' falls back to the R on PATH, so existing setups are unchanged. The
+# actual R interpreter ($R) is chosen after option parsing, below.
+R_STABLE="${BARRACODA_R_STABLE:-}"   # reference edgeR, e.g. /opt/R-4.3.1/bin/R
+R_LATEST="${BARRACODA_R_LATEST:-}"   # latest edgeR,    e.g. /path/to/env/bin/R
 Python="$(which python)"
 
 # Define paths to bowtie tools
@@ -58,8 +68,10 @@ help() {
 	echo "					- Intermediate directory in which intermediate file is stored"
 	echo " 					- Output directory in which user (web) output is stored"
 	echo "  -o   Optional path that output directory is copied to (e.g. path to web server)"
-   echo "  -c   Sum counts for duplicated sampes. Can be TRUE or FALSE (Default:FALSE)" 
-	echo "  -n   Input is Nanopore data (Default:Off)" 	
+   echo "  -c   Sum counts for duplicated sampes. Can be TRUE or FALSE (Default:FALSE)"
+   echo "  -V   edgeR version: 'stable' or 'latest' (Default:stable). Selects the R+edgeR"
+   echo "       environment; 'stable' reproduces historical results, 'latest' uses newer edgeR."
+	echo "  -n   Input is Nanopore data (Default:Off)"
 	echo "  -k   Keep all intermediate files (Default:Off)"           
    echo "  -w   Webserver mode (Default:Off)"  
 	echo "  -h   Print this help information."
@@ -73,8 +85,9 @@ help() {
 # Add ":" after characters that needs arguments (not k and h)
 sum_of_counts="FALSE" # Used when dealing with duplicated sampes
 is_nanopore=0 # Used when input is from Nanopore
+edger_version="stable" # edgeR environment to run: stable (default) or latest
 
-while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:wnkh" arg; do 
+while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:V:wnkh" arg; do
   case $arg in
 	  # REQUIRED ARGUMENTS:
 	  f) seq_data_fastq=${OPTARG} ;; # Could be .fasta
@@ -93,12 +106,57 @@ while getopts "f:m:a:A:B:C:D:E:F:G:H:p:s:o:c:wnkh" arg; do
     p) barcode_plate_setup_xlsx=${OPTARG} ;; 
 		s) storage_dir=${OPTARG} ;;
 		o) extra_output_dir=${OPTARG} ;; 
-                c) sum_of_counts=${OPTARG} ;; 
-		n) is_nanopore=1 ;; 
+                c) sum_of_counts=${OPTARG} ;;
+                V) edger_version=${OPTARG} ;;
+		n) is_nanopore=1 ;;
 		k) keep_all=1 ;;
     h) help; exit 0 ;;
   esac
 done
+
+#####################################################################
+# Select the R interpreter for the requested edgeR version (-V).
+# 'stable' falls back to the R on PATH when unconfigured (keeps existing setups
+# and the web server unchanged). 'latest' must be configured explicitly, so a
+# missing 'latest' env can never silently return 'stable' edgeR's results.
+# NOTE: R_STABLE / R_LATEST must be paths WITHOUT spaces ($R is expanded
+# unquoted at the R call sites below).
+edger_version=$(printf '%s' "$edger_version" | tr '[:upper:]' '[:lower:]')  # accept STABLE/Latest etc.
+case "$edger_version" in
+	stable)
+		R="${R_STABLE:-$(which R)}"
+		;;
+	latest)
+		if [ -z "$R_LATEST" ]; then
+			echo "[ERROR] -V latest was requested but no 'latest' R+edgeR environment is configured." >&2
+			echo "        Set R_LATEST in barracoda-2.0.sh, or the BARRACODA_R_LATEST environment variable." >&2
+			exit 1
+		fi
+		R="$R_LATEST"
+		# Guard against a mis-wire where 'latest' resolves to the same R as 'stable'
+		if [ "$(readlink -f "$R" 2>/dev/null)" = "$(readlink -f "${R_STABLE:-$(which R)}" 2>/dev/null)" ]; then
+			echo "[WARNING] -V latest resolves to the same R as stable ('$R') - the edgeR version will not differ." >&2
+		fi
+		;;
+	*)
+		echo "[ERROR] -V must be 'stable' or 'latest' (got '$edger_version')." >&2
+		exit 1
+		;;
+esac
+
+# Fail fast (and clearly) on a mis-pointed -V: the interpreter must exist AND be able
+# to load edgeR. Otherwise the run would only fail deep inside the R analysis and look
+# like a normal (but incomplete) completion. $edger_pkg_version is logged below.
+if [ ! -x "$R" ]; then
+	echo "[ERROR] R for -V $edger_version not found or not executable: '$R'" >&2
+	echo "        Check R_STABLE / R_LATEST (or BARRACODA_R_STABLE / BARRACODA_R_LATEST)." >&2
+	exit 1
+fi
+edger_pkg_version=$("$R" --vanilla --slave -e 'cat(as.character(packageVersion("edgeR")))' 2>/dev/null)
+if [ -z "$edger_pkg_version" ]; then
+	echo "[ERROR] The R selected for -V $edger_version ('$R') cannot load edgeR - wrong environment?" >&2
+	exit 1
+fi
 
 #####################################################################
 #####################################################################
@@ -143,6 +201,10 @@ exec 3>&1
 # Save stdout and stderr to log file in output_dir
 LogFile=`echo $output_dir/log_file_barracoda_${jobid_dir##*_}.txt`
 exec >> $LogFile
+
+# Record which edgeR environment produced this job (into the job log only, not the
+# CGI channel) so an archived result is traceable to its edgeR version.
+echo "[barracoda] edgeR-version(-V)=$edger_version  R=$R  edgeR=$edger_pkg_version"
 
 
 #####################################################################

@@ -12,10 +12,15 @@
 #
 # Regenerate the fixture (rarely needed) with:
 #   Rscript tests/smoke/make_smoke_data.R
+#
+# Usage: smoke_test.sh [stable|latest]   (default: stable)
+#   Passes -V <mode> to barracoda, so you can verify each edgeR environment.
+#   'latest' requires BARRACODA_R_LATEST (or R_LATEST in barracoda-2.0.sh) to be set.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FIX="$REPO/tests/smoke"
+MODE="${1:-stable}"
 
 fail() { echo "SMOKE TEST: FAIL - $*" >&2; exit 1; }
 
@@ -37,7 +42,7 @@ done
 
 # --- run the pipeline into a throwaway store ---
 STORE="$(mktemp -d)"
-echo "SMOKE TEST: running pipeline (store: $STORE) ..."
+echo "SMOKE TEST: running pipeline (edgeR version: $MODE, store: $STORE) ..."
 "$BASH_BIN" "$REPO/barracoda-2.0.sh" \
   -f "$FIX/reads.fastq" \
   -m "$FIX/sampleID.xlsx" \
@@ -50,6 +55,7 @@ echo "SMOKE TEST: running pipeline (store: $STORE) ..."
   -F "$FIX/epitopeB.fasta" \
   -G 6 \
   -H GTTATCGGCTCGTTCACACTCGA \
+  -V "$MODE" \
   -s "$STORE" > "$STORE/run.log" 2>&1
 rc=$?
 [ "$rc" -eq 0 ] || { echo "--- run.log tail ---"; tail -25 "$STORE/run.log"; fail "pipeline exited $rc"; }
@@ -69,5 +75,5 @@ if grep -qiE '\[ERROR\]|Execution halted|cannot be repeated|dim\(X\) must have|c
   fail "error signature found in R logs"
 fi
 
-echo "SMOKE TEST: PASS - experiment_RCC_17 produced fold_change + readcounts, no errors"
+echo "SMOKE TEST: PASS ($MODE) - experiment_RCC_17 produced fold_change + readcounts, no errors"
 rm -rf "$STORE"
