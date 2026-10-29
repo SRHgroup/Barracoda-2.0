@@ -295,6 +295,25 @@ CheckXlsxFormat() {
    fi
 }
 
+# Copy a FASTA file while normalising it: strip Windows (CRLF) line endings,
+# trailing whitespace and blank lines. dissect-barcodes--fast.pl dies on blank
+# lines and a leftover '\r' breaks every exact sequence match.   $1=source  $2=destination
+NormalizeFasta() {
+   tr -d '\r' < "$1" | sed 's/[[:space:]]*$//' | grep -v '^$' > "$2"
+}
+
+# Verify a (normalised) FASTA has strictly alternating header / single sequence lines
+# containing only A, C, G, T, N.   $1=path  $2=option flag  $3=human description
+CheckFastaStructure() {
+   local problem
+   problem=$(awk 'NR%2==1 && !/^>/              {print "line " NR " should be a header starting with >, found: " $0; bad=1; exit}
+                  NR%2==0 && !/^[ACGTNacgtn]+$/ {print "line " NR " should be a single-line sequence of A, C, G, T, found: " $0; bad=1; exit}
+                  END {if (!bad && NR%2==1) print "the last header (line " NR ") has no sequence"}' "$1")
+   if [ -n "$problem" ] ; then
+      InputError " [ERROR] The $3 (option $2) is not a valid FASTA file: $problem\n Every entry must be one '>' header line followed by one sequence line (no line-wrapped sequences), for example:\n        >name\n        ACGT...\n"
+   fi
+}
+
 #####################################################################
 #####################################################################
 # Required arguments
@@ -455,12 +474,15 @@ if [[ $file_type = *"ASCII"* ]] || [[ $file_type = *"text"* ]] ; then cp $sample
 
 cp $barcode_annotations_xlsx $input_dir/barcode_annotations.xlsx
 barcode_annotations_xlsx=$input_dir/barcode_annotations.xlsx
-cp $sample_id_tags_fasta $input_dir/sample_id_tags.fasta
+NormalizeFasta $sample_id_tags_fasta $input_dir/sample_id_tags.fasta
 sample_id_tags_fasta=$input_dir/sample_id_tags.fasta
-cp $a_epitope_tag_fasta $input_dir/a_epitope_tag.fasta
+CheckFastaStructure $sample_id_tags_fasta "-A" "sample identification tag FASTA file"
+NormalizeFasta $a_epitope_tag_fasta $input_dir/a_epitope_tag.fasta
 a_epitope_tag_fasta=$input_dir/a_epitope_tag.fasta
-cp $b_epitope_tag_fasta $input_dir/b_epitope_tag.fasta
+CheckFastaStructure $a_epitope_tag_fasta "-D" "epitope tag A FASTA file"
+NormalizeFasta $b_epitope_tag_fasta $input_dir/b_epitope_tag.fasta
 b_epitope_tag_fasta=$input_dir/b_epitope_tag.fasta
+CheckFastaStructure $b_epitope_tag_fasta "-F" "epitope tag B FASTA file"
 if [ $barcode_plate_setup_xlsx ] ; then cp $barcode_plate_setup_xlsx $input_dir/barcode_plate_setup.xlsx ; fi
 
 # Primer info
@@ -793,6 +815,9 @@ checkFile() {
                 echo $' The' $2 $' file was created succesfully.\n'
         else
                 Echo3 $' [ERROR] Script terminated because' $2 $'was not generated!!!\n';
+                # Surface the first error from the dissect-barcodes chunks, if any
+                chunk_err=$(cat $chunk_dir/*.log 2>/dev/null | grep -v '^$' | head -1)
+                if [ -n "$chunk_err" ] ; then Echo3 $' Reason reported by dissect-barcodes--fast.pl:' "$chunk_err" $'\n' ; fi
                 exit
         fi
 
