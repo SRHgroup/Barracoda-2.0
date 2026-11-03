@@ -361,9 +361,12 @@ if [[ "$sm_type" == *Microsoft* ]] || [[ "$sm_type" == *Excel* ]] || [[ "$sm_typ
    InputError " [ERROR] The sample identification table (option -m) is neither an Excel (.xlsx) nor a text (.txt) file (detected type: $sm_type):\n        $sample_id_table_file\n Please provide the sample identification table as an .xlsx workbook or a tab-separated .txt file.\n"
 fi
 
-# Barcode annotations (-a): XLSX
+# Barcode annotations (-a): XLSX or tab-separated TXT (the R reader accepts both, detected with file -b)
 CheckFilePresent "$barcode_annotations_xlsx" "-a" "barcode annotations table"
-CheckXlsxFormat  "$barcode_annotations_xlsx" "-a" "barcode annotations table"
+an_type=$(file -b "$barcode_annotations_xlsx")
+if [[ "$an_type" == *Microsoft* ]] || [[ "$an_type" == *Excel* ]] || [[ "$an_type" == *OOXML* ]] || [[ "$an_type" == *"Zip archive"* ]] || [[ "$an_type" == *ASCII* ]] || [[ "$an_type" == *text* ]] ; then : ; else
+   InputError " [ERROR] The barcode annotations table (option -a) is neither an Excel (.xlsx) nor a text (.txt) file (detected type: $an_type):\n        $barcode_annotations_xlsx\n Please provide the barcode annotations table as an .xlsx workbook or a tab-separated .txt file.\n"
+fi
 
 # Sample identification tags (-A): FASTA
 CheckFilePresent "$sample_id_tags_fasta" "-A" "sample identification tag FASTA file"
@@ -526,12 +529,15 @@ ExitIfErrors $r_logcheckinputdata
 #####################################################################
 # Check that sample ids match in sample_id_table_file and sample_id_tags_fasta 
 echo -e $'\n Checking if a-keys in sample_id_table file exist in sample FASTA file ...'
-for a_key in $(cut -f1 $input_dir/sample_id_table.txt) ; do 
-	if grep -q $a_key $sample_id_tags_fasta ; then : ; else 
-		Echo3 '  -> ' [ERROR] $a_key NOT found!!!!! ; 
-		Echo3 $'\n The program was terminated!!\n Please provide a sample id table with a-keys of sample FASTA file ...\n\n' ; 
-		exit ; fi
-done
+# Exact header match (not substring: _10 must not match _100); report every missing key at once
+missing_keys=$(awk -F'\t' 'NR==FNR { if (sub(/^>/,"")) { sub(/\r$/,""); split($0,h,/[ \t]+/); have[h[1]]=1 }; next }
+                           { k=$1; sub(/\r$/,"",k); if (k!="" && !(k in have) && !(k in seen)) { seen[k]=1; printf "%s ", k } }' \
+                  "$sample_id_tags_fasta" "$input_dir/sample_id_table.txt")
+if [ -n "$missing_keys" ] ; then
+	Echo3 "  -> [ERROR] These a-keys from the sample identification table (-m) are not in the sample identification tag FASTA file (-A): $missing_keys"
+	Echo3 $'\n The program was terminated!!\n Please provide the sample tag FASTA that contains all a-keys used in the sample table (do not trim it to only the used keys).\n\n'
+	exit 1
+fi
 echo -e $'  -> All a-keys in sample_id_table matches headers in sample_id_tags_fasta..'
 
 #####################################################################
