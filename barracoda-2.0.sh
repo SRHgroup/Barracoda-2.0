@@ -246,6 +246,19 @@ ExitIfErrors() {
    fi
 }
 
+
+# Check an R step after it ran.   $1=exit code  $2=log file  $3=step name  $4=fatal|warn
+CheckRStep() {
+   if [ "$1" -ne 0 ] ; then
+      if [ "$4" = fatal ] ; then
+         Echo3 " [ERROR] The R step '$3' crashed (exit code $1). The run was stopped and no results were produced.\n Error from its log ($2):\n$(grep -a -A3 "^Error" "$2" | head -n 12 || tail -n 5 "$2")\n Please contact the Barracoda maintainers with your job id."
+         exit 1
+      else
+         Echo3 " [WARNING] The R step '$3' failed (exit code $1); some plots/summary files may be missing. Log: $2"
+      fi
+   fi
+}
+
 #####################################################################
 # Input-file validation helpers
 #
@@ -858,16 +871,23 @@ echo -e $' Carrying out R analysis including summarization of barcodes '
 # Run read lengths scripts
 echo -e $'  -> Running read lengths scripts with following command line'
 $R --vanilla --slave --args $read_lengths_all $read_lengths_2of3 $read_lengths_AandB $output_dir $expected_barcode_length < <(cat $function_script $readlength_script ) > $r_log_plot 2>&1
+CheckRStep $? $r_log_plot "plot read lengths" warn
 echo -e $'  \t' $R '--vanilla --slave --args' $read_lengths_all $read_lengths_2of3 $read_lengths_AandB $output_dir $expected_barcode_length '< <(cat' $function_script $readlength_script ') >' $r_log_plot '2>&1'
 
 # Run summarize barcodes scripts
 echo -e $'  -> Running summarize barcodes with following command line'
 $R --vanilla --slave --args $merged_mapped_reads $sample_id_table_file $output_dir $a_epitope_tag_fasta $b_epitope_tag_fasta $a_end_n_seq_length $b_end_n_seq_length $barcode_annotations_xlsx $sum_of_counts < <(cat $function_script $summarize_script ) > $r_log_sum 2>&1
+CheckRStep $? $r_log_sum "summarize barcodes" fatal
+failed_exp=$(grep -a "^\[ERROR\] Experiment '" $r_log_sum)
+if [ -n "$failed_exp" ] ; then
+	Echo3 " [WARNING] Some experiments could not be analysed and are MISSING from your results:\n$failed_exp\n Any experiments not listed here completed normally. Please contact the Barracoda maintainers with your job id."
+fi
 echo -e $'  \t' $R '--vanilla --slave --args' $merged_mapped_reads $sample_id_table_file $output_dir $a_epitope_tag_fasta $b_epitope_tag_fasta $a_end_n_seq_length $b_end_n_seq_length $barcode_annotations_xlsx $sum_of_counts '< <(cat' $function_script $summarize_script ') >' $r_log_sum '2>&1'
 
 # Run pval results
 echo -e $'  -> Running read lengths scripts with following command line'
 $R --vanilla --slave --args $output_dir < <(cat $function_script $pvalscript ) > $r_log_pval 2>&1
+CheckRStep $? $r_log_pval "collect p-values and logFC" warn
 echo -e $'  \t' $R '--vanilla --slave --args' $output_dir '< <(cat' $function_script $pvalscript ') >' $r_log_pval '2>&1'
 
 # Run barcode plate 
@@ -878,6 +898,7 @@ if [ -z $barcode_plate_setup_xlsx ] ; then
 	else
 		echo -e $'  -> Plots are being made in R...'
 		$R --vanilla --slave --args $output_dir $input_dir/barcode_plate_setup.xlsx $barcode_annotations_xlsx < <(cat $function_script $platesetup_script ) > $r_log_plate 2>&1
+CheckRStep $? $r_log_plate "plot barcodes on plates" warn
 		echo -e $'  \t' $R '--vanilla --slave --args' $output_dir $barcode_plate_setup_xlsx $barcode_annotations_xlsx  '< <(cat' $function_script $platesetup_script ') >' $r_log_plate '2>&1'
 fi
 

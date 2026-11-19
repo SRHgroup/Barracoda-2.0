@@ -207,7 +207,9 @@ WriteMultiSheetExcel(
 # iteration of an experiment is skipped (e.g. all samples have zero reads).
 fdr <- 0.001
 
+failed_experiments <- character(0)
 for (i in names(exp_map)) {
+ tryCatch({
 	print(paste('experiment:',i))
 	dir_out_tmp <- file.path(dir_out, paste0("experiment_", i))
 	dir.create(dir_out_tmp)
@@ -469,7 +471,13 @@ for (i in names(exp_map)) {
 	
 	
 		
+ }, error = function(e) {
+	# One failing experiment must not take the remaining experiments down with it.
+	message("[ERROR] Experiment '", i, "' failed and is missing from the results: ", conditionMessage(e))
+	failed_experiments <<- c(failed_experiments, i)
+ })
 }
+if (length(failed_experiments) > 0) message("[ERROR] Failed experiments: ", paste(failed_experiments, collapse = ", "))
 
 
 
