@@ -7,17 +7,30 @@ import shutil
 from Bio import SeqIO
 
 def detect_file_type(filepath):
-    """Detects file type using bytes. Returns 'zip', 'gz', or 'other'."""
-    if os.path.isdir(filepath): # find directory 
+    """Detects file type from content. Returns 'dir', 'zip', 'gz', 'fastq' or 'other'."""
+    if os.path.isdir(filepath):
         return "dir"
     with open(filepath, "rb") as f:
         signature = f.read(4)
-    if signature.startswith(b"\x50\x4B\x03\x04"):  # find .zip
+    if signature.startswith(b"\x50\x4B\x03\x04"):
         return "zip"
-    elif signature.startswith(b"\x1F\x8B"):  # find .gz 
+    if signature.startswith(b"\x1F\x8B"):
         return "gz"
-    else:
-        return "other" 
+    # plain FASTQ: @header / sequence / + / quality of the same length
+    try:
+        with open(filepath, "r") as f:
+            l1, l2, l3, l4 = (f.readline().strip() for _ in range(4))
+        if l1.startswith("@") and l3.startswith("+") and len(l2) == len(l4) and len(l2) > 0:
+            return "fastq"
+    except (UnicodeDecodeError, OSError):
+        pass
+    return "other"
+
+
+def is_hidden_or_macos_junk(path):
+    """Skip macOS metadata (._name files, __MACOSX folders) and other hidden files."""
+    return any(part.startswith(".") or part == "__MACOSX" for part in path.split(os.sep) if part)
+
 
 def reverse_complement(seq):
     complement = str.maketrans('ATCGN', 'TAGCN')
@@ -45,38 +58,47 @@ def process_fastq(input_path, output_file, junkfile, primerA, primerB,
 
     filetype = detect_file_type(input_path)
 
-    # If zip, extract it first
+    # A zip is extracted into its OWN subfolder and only that subfolder is read. Earlier versions
+    # extracted next to the output files and then read every FASTQ in that folder - including
+    # their own growing output, which made the run loop forever (store.barracoda_2026-09-29.2).
     if filetype == "zip":
-        # if extract_dir not provided, use outfile directory
-        if extract_dir is None:
-            extract_dir = os.path.dirname(os.path.abspath(output_file))
-        os.makedirs(extract_dir, exist_ok=True)
+        base = extract_dir if extract_dir else os.path.dirname(os.path.abspath(output_file))
+        unpack_dir = os.path.join(base, "uploaded_reads")
+        shutil.rmtree(unpack_dir, ignore_errors=True)
+        os.makedirs(unpack_dir)
         with zipfile.ZipFile(input_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-        input_path = extract_dir  # Now treat as a directory
+            zip_ref.extractall(unpack_dir)
+        input_path, filetype = unpack_dir, "dir"
 
-    with open(output_file, 'a') as final_out, open(junkfile, 'a') as final_junk:
-        if os.path.isdir(input_path):
-            for root, _, files in os.walk(input_path):
-                for fname in files:
-                    if detect_file_type(os.path.join(root, fname)) == "gz":
-                        filepath = os.path.join(root, fname)
-                        print(f"Processing {filepath}...")
+    never_read = {os.path.abspath(output_file), os.path.abspath(junkfile)}
+
+    # 'w': start from empty output files on every run (append mode duplicated reads on re-runs)
+    with open(output_file, 'w') as final_out, open(junkfile, 'w') as final_junk:
+        if filetype == "dir":
+            for root, dirs, files in os.walk(input_path):
+                dirs[:] = sorted(d for d in dirs if not is_hidden_or_macos_junk(d))
+                for fname in sorted(files):
+                    filepath = os.path.join(root, fname)
+                    if is_hidden_or_macos_junk(fname) or os.path.abspath(filepath) in never_read:
+                        continue
+                    if detect_file_type(filepath) in ("gz", "fastq"):
+                        print(f"Processing {filepath}...", flush=True)
                         tr, pr = trim_fastq(filepath, final_out, final_junk,
-                                            primerA, primerB,
-                                            min_length, max_length,
+                                            primerA, primerB, min_length, max_length,
                                             quality_threshold, n_subs)
                         total_reads += tr
                         passed_reads += pr
-        elif filetype == "gz":
-            print(f"Processing {input_path}...")
+        elif filetype in ("gz", "fastq"):
+            print(f"Processing {input_path}...", flush=True)
             total_reads, passed_reads = trim_fastq(input_path, final_out, final_junk,
-                                                   primerA, primerB,
-                                                   min_length, max_length,
+                                                   primerA, primerB, min_length, max_length,
                                                    quality_threshold, n_subs)
         else:
-            raise ValueError("Invalid input: Must be a .fastq.gz file, .zip file, or a directory containing fastq.gz files.")
-    
+            raise ValueError("Invalid input: must be a FASTQ file (plain or gzipped), a zip file, or a folder of FASTQ files.")
+
+    if total_reads == 0:
+        raise ValueError("No reads were found in the sequencing input. Check that it contains FASTQ files.")
+
     percent_passed = (passed_reads / total_reads * 100) if total_reads > 0 else 0
     print(f"Total reads processed: {total_reads}")
     print(f"Reads passed: {passed_reads} ({percent_passed:.2f}%)")

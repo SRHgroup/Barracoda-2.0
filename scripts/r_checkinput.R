@@ -34,11 +34,16 @@ sid$akey <- sid$akey_num
 sid$akey_num <- as.numeric(sub("^.*_(\\d+)$", "\\1", sid$akey_num)) 
 exp_map <- lapply(split(sid, sid$experiment), function(x) setNames(x[,2], x[,1]))
 
-# Read sample id table and checks for duplicated samples or A-keys (within the same experiment).
-# With -c (sum_of_counts), duplicated sample names are intentional (merged & summed), so skip
-# that check. A literally repeated a-key is always a data error, so keep checking it.
-if (!sum_of_counts) {
-  any.duplications(sid, type='sample', file=sample_map_out)
+# Check the sample id table within each experiment. A literally repeated a-key is always a data
+# error and stops the run (below).
+# Duplicated sample names are allowed: they are replicates (the web form asks users to use
+# identical names for replicates). With -c TRUE their counts are summed into one sample instead.
+d <- sid[sid$sample != "input", c("sample", "experiment")]
+dup_samples <- unique(d$sample[duplicated(d)])
+if (length(dup_samples) > 0) {
+  message("NOTE: these sample names occur on more than one a-key and are treated as ",
+          if (sum_of_counts) "one sample (counts summed, -c TRUE)" else "replicates",
+          ": ", paste(dup_samples, collapse = ", "))
 }
 any.duplications(sid, type='akey', file=sample_map_out)
 
