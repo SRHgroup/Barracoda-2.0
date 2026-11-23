@@ -5,7 +5,7 @@
 
 #####################################################################
 
-# Define path to Barracoda-2.0
+# Define path to Barracoda (this script's folder)
 barracoda_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 barracoda_script_dir="${barracoda_dir}/scripts"
 
@@ -46,6 +46,7 @@ help() {
 	echo
 	echo
 	echo -e '  B A R R A C O D A'
+	echo '  Version 2.1'
 	echo 
 	echo "  Original version by Andrea Marquard, March 2015"
 	echo 
@@ -140,7 +141,7 @@ case "$edger_version" in
 	latest)
 		if [ -z "$R_LATEST" ]; then
 			echo "[ERROR] -V latest was requested but no 'latest' R+edgeR environment is configured." >&2
-			echo "        Set R_LATEST in barracoda-2.0.sh, or the BARRACODA_R_LATEST environment variable." >&2
+			echo "        Set R_LATEST in barracoda-2.1.sh, or the BARRACODA_R_LATEST environment variable." >&2
 			exit 1
 		fi
 		R="$R_LATEST"
@@ -228,7 +229,7 @@ echo "The intermediate files and results can be found in: ${jobid_dir}" >&3
 
 # Welcome message (to log file)
 echo -e $'\n\n                     \n B A R R A C O D A \n                     '
-echo $'\n You are now running Barracoda 2.0....\n In case of problems, please contact kamkj@dtu.dk, and provide the process id of your job:' barracoda_${jobid_dir##*_} $'\n The job folder is:' $jobid_dir
+echo $'\n You are now running Barracoda 2.1....\n In case of problems, please contact kamkj@dtu.dk, and provide the process id of your job:' barracoda_${jobid_dir##*_} $'\n The job folder is:' $jobid_dir
 
 # Header function
 Header() { 

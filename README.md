@@ -36,20 +36,20 @@ conda activate barracoda_env
 ```
 
 ### Modify barracoda paths
-Modify the "barracoda_dir" path within the barracoda-2.0.sh script
+Modify the "barracoda_dir" path within the barracoda-2.1.sh script
 
 ### Test the installation:
 
-Change permission to barracoda-2.0.sh to make it exicutable. 
+Change permission to barracoda-2.1.sh to make it exicutable. 
 
 ```
-chmod 775 barracoda-2.0.sh
+chmod 775 barracoda-2.1.sh
 ```
 
 ### Test Barracoda-2.0
 
 ```
-./barracoda-2.0.sh -h 
+./barracoda-2.1.sh -h 
 ```
 
 # Example Usage
@@ -60,7 +60,7 @@ Barracoda can run using either Illumina/IonTorrent or Nanopore input data
 
 ```
 conda activate barracoda_env
-./barracoda-2.0.sh -m data/Nanopore_data/sample_identification.xlsx -a data/Nanopore_data/barcode_annotation.xlsx -A data/Nanopore_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/Nanopore_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/Nanopore_data/EpitopeTagB.fasta -G 6 -H CAATCTTGAGCGTGACTTAAG -f data/Nanopore_data/Nanopore_data -o test_results/Nanopore_results -n
+./barracoda-2.1.sh -m data/Nanopore_data/sample_identification.xlsx -a data/Nanopore_data/barcode_annotation.xlsx -A data/Nanopore_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/Nanopore_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/Nanopore_data/EpitopeTagB.fasta -G 6 -H CAATCTTGAGCGTGACTTAAG -f data/Nanopore_data/Nanopore_data -o test_results/Nanopore_results -n
 ```
 
 Add the plate setup using `-p data/Nanopore_data/barcode-plate-setup.xlsx` (optional)
@@ -68,7 +68,7 @@ Add the plate setup using `-p data/Nanopore_data/barcode-plate-setup.xlsx` (opti
 ### Run Barracoda-2.0 using IonTorrent data 
 ```
 conda activate barracoda_env
-./barracoda-2.0.sh -m data/IonTorrent_data/sample_identification.xlsx -a data/IonTorrent_data/barcode_annotation.xlsx -A data/IonTorrent_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/IonTorrent_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/IonTorrent_data/EpitopeTagB.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA -f data/IonTorrent_data/IonTorrent_data.fastq -o test_results/IonTorrent_results
+./barracoda-2.1.sh -m data/IonTorrent_data/sample_identification.xlsx -a data/IonTorrent_data/barcode_annotation.xlsx -A data/IonTorrent_data/sample-identification-tag.fasta -B GAAGTTCCAGCCAGCGTCACAGTTT -C 6 -D data/IonTorrent_data/EpitopeTagA.fasta -E GGTCAGCATCATTTCC -F data/IonTorrent_data/EpitopeTagB.fasta -G 6 -H GTTATCGGCTCGTTCACACTCGA -f data/IonTorrent_data/IonTorrent_data.fastq -o test_results/IonTorrent_results
 ```
 
 Add the plate setup using `-p data/IonTorrent_data/barcode-plate-setup.xlsx` (optional)

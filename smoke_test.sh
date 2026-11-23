@@ -3,7 +3,7 @@
 #
 # Runs the FULL pipeline on a tiny synthetic fixture (2 a-keys x 2 antigens,
 # test_data/smoke/) and asserts it completes cleanly end-to-end. This catches
-# not just non-zero exits but also the class of bug where barracoda-2.0.sh exits
+# not just non-zero exits but also the class of bug where barracoda-2.1.sh exits
 # 0 while an R step (e.g. summarize) actually crashed - by checking the expected
 # outputs exist and no error signatures appear in the R logs.
 #
@@ -15,7 +15,7 @@
 #
 # Usage: smoke_test.sh [stable|latest]   (default: stable)
 #   Passes -V <mode> to barracoda, so you can verify each edgeR environment.
-#   'latest' requires BARRACODA_R_LATEST (or R_LATEST in barracoda-2.0.sh) to be set.
+#   'latest' requires BARRACODA_R_LATEST (or R_LATEST in barracoda-2.1.sh) to be set.
 set -uo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -43,7 +43,7 @@ done
 # --- run the pipeline into a throwaway store ---
 STORE="$(mktemp -d)"
 echo "SMOKE TEST: running pipeline (edgeR version: $MODE, store: $STORE) ..."
-"$BASH_BIN" "$REPO/barracoda-2.0.sh" \
+"$BASH_BIN" "$REPO/barracoda-2.1.sh" \
   -f "$FIX/reads.fastq" \
   -m "$FIX/sampleID.xlsx" \
   -a "$FIX/annotations.xlsx" \

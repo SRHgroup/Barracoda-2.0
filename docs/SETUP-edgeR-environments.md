@@ -1,13 +1,13 @@
 # Setup: the two edgeR environments for Barracoda's `-V` option
 
 Barracoda's edgeR results (p-values / enrichment calls) depend on the **edgeR
-version**. `barracoda-2.0.sh` therefore has a `-V` option that selects which
+version**. `barracoda-2.1.sh` therefore has a `-V` option that selects which
 R+edgeR environment runs:
 
 - `-V stable` (default) — the reference R+edgeR that reproduces historical / web-server results.
 - `-V latest` — a newer R+edgeR.
 
-`-V` chooses the R interpreter from two paths configured in `barracoda-2.0.sh`
+`-V` chooses the R interpreter from two paths configured in `barracoda-2.1.sh`
 (`R_STABLE`, `R_LATEST`), each overridable by the env vars
 `BARRACODA_R_STABLE` / `BARRACODA_R_LATEST`. Only the **R** steps use that
 interpreter; bowtie2 / perl / GNU parallel still come from `PATH`, so the
@@ -26,7 +26,7 @@ This document is a self-contained task you can paste into a Claude Code session
 > ⚠️ Before handing this off, the `-V` feature, the mode-aware `smoke_test.sh`,
 > and this doc must be **committed and pushed** to the branch the operator will
 > check out. Confirm on that branch that `git log --oneline` shows the
-> "edgeR version selection (-V)" commit and `grep -n edger_version barracoda-2.0.sh`
+> "edgeR version selection (-V)" commit and `grep -n edger_version barracoda-2.1.sh`
 > returns hits.
 
 ---
@@ -40,7 +40,7 @@ This document is a self-contained task you can paste into a Claude Code session
 > **First, get the right code.** Work in a Barracoda-2.0 checkout of the branch
 > that has the `-V` feature (branch `pin-web-versions` of
 > github.com/SRHgroup/Barracoda-2.0). Verify BEFORE doing anything else:
-> `grep -n edger_version barracoda-2.0.sh` must return hits and
+> `grep -n edger_version barracoda-2.1.sh` must return hits and
 > `ls smoke_test.sh tests/smoke/ docs/SETUP-edgeR-environments.md` must succeed.
 > If not, `git fetch` and check out that branch (or the commit that adds `-V`).
 > Do not proceed until this passes.
@@ -103,7 +103,7 @@ This document is a self-contained task you can paste into a Claude Code session
 > Set the two R-binary paths so `-V` finds them:
 > - `<stableR>/bin/R` for stable, `<latest-env>/bin/R` for latest.
 >
-> Do it by editing the `R_STABLE=` / `R_LATEST=` lines in `barracoda-2.0.sh`'s
+> Do it by editing the `R_STABLE=` / `R_LATEST=` lines in `barracoda-2.1.sh`'s
 > config block, **or** via the `BARRACODA_R_STABLE` / `BARRACODA_R_LATEST` env
 > vars in the environment where the webface invokes Barracoda. Recommended:
 > explicitly pin `R_STABLE=<stableR>/bin/R` rather than relying on the `which R`
@@ -139,8 +139,8 @@ This document is a self-contained task you can paste into a Claude Code session
 
 - Web users keep getting `stable` (reference) results by default — nothing changes.
 - To expose the choice on the website, the webface needs a control (e.g. a
-  dropdown, default "stable") that passes `-V stable|latest` to `barracoda-2.0.sh`.
+  dropdown, default "stable") that passes `-V stable|latest` to `barracoda-2.1.sh`.
   That lives in the web front-end, separate from this repo.
-- CLI users can run `barracoda-2.0.sh ... -V latest` directly once the env is wired.
+- CLI users can run `barracoda-2.1.sh ... -V latest` directly once the env is wired.
 - `test_environment.sh` checks the R on `PATH`, **not** the `-V`-selected R — use
   `smoke_test.sh stable` / `smoke_test.sh latest` to verify each environment.
